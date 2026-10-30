@@ -1,0 +1,31 @@
+origen,destino,version,tiempo_viaje_s,nodos_explorados,tiempo_ms
+Plaza de Bolívar Armenia (ID 1),Parque de la Vida (ID 26),cola_prioridad,310.34,2085,6.18
+Plaza de Bolívar Armenia (ID 1),Parque de la Vida (ID 26),lineal,310.34,2085,1103.92
+Plaza de Bolívar Armenia (ID 1),Museo del Oro Quimbaya (ID 17),cola_prioridad,496.47,3556,8.76
+Plaza de Bolívar Armenia (ID 1),Museo del Oro Quimbaya (ID 17),lineal,496.47,3556,1793.9
+Plaza de Bolívar Armenia (ID 1),Cooperativa de Caficultores del Quindío Sede Armenia (ID 38),cola_prioridad,306.27,2048,6.4
+Plaza de Bolívar Armenia (ID 1),Cooperativa de Caficultores del Quindío Sede Armenia (ID 38),lineal,306.27,2048,1117.39
+Plaza de Bolívar Calarcá (ID 2),Jardín Botánico del Quindío y Mariposario (ID 16),cola_prioridad,274.14,728,5.23
+Plaza de Bolívar Calarcá (ID 2),Jardín Botánico del Quindío y Mariposario (ID 16),lineal,274.14,728,415.43
+Plaza de Bolívar Calarcá (ID 2),Eco Parque Peñas Blancas (ID 23),cola_prioridad,670.27,3157,8.72
+Plaza de Bolívar Calarcá (ID 2),Eco Parque Peñas Blancas (ID 23),lineal,670.27,3157,1621.18
+Plaza de Bolívar Salento (ID 5),Valle de Cocora (ID 15),cola_prioridad,1508.35,816,6.5
+Plaza de Bolívar Salento (ID 5),Valle de Cocora (ID 15),lineal,1508.35,816,545.97
+Plaza de Bolívar Salento (ID 5),Finca Cafetera Las Acacias (ID 21),cola_prioridad,430.09,112,2.36
+Plaza de Bolívar Salento (ID 5),Finca Cafetera Las Acacias (ID 21),lineal,430.09,112,71.32
+Plaza de Bolívar Montenegro (ID 6),Parque Nacional del Café (ID 13),cola_prioridad,356.07,412,3.43
+Plaza de Bolívar Montenegro (ID 6),Parque Nacional del Café (ID 13),lineal,356.07,412,251.42
+Plaza de Bolívar Quimbaya (ID 7),PANACA (ID 14),cola_prioridad,753.86,541,3.96
+Plaza de Bolívar Quimbaya (ID 7),PANACA (ID 14),lineal,753.86,541,315.52
+Plaza de Bolívar Filandia (ID 4),Mirador Colina Iluminada (ID 20),cola_prioridad,105.41,113,2.44
+Plaza de Bolívar Filandia (ID 4),Mirador Colina Iluminada (ID 20),lineal,105.41,113,67.63
+Plaza de Bolívar Armenia (ID 1),Plaza de Bolívar Salento (ID 5),cola_prioridad,2034.01,7511,16.01
+Plaza de Bolívar Armenia (ID 1),Plaza de Bolívar Montenegro (ID 6),cola_prioridad,939.76,4783,11.3
+Plaza de Bolívar Armenia (ID 1),Plaza de Bolívar La Tebaida (ID 8),cola_prioridad,1287.79,6015,13.95
+Plaza de Bolívar Salento (ID 5),Parque Nacional del Café (ID 13),cola_prioridad,2788.72,6286,13.65
+Plaza de Bolívar Quimbaya (ID 7),Plaza de Bolívar Génova (ID 12),cola_prioridad,5991.86,8634,19.01
+Plaza de Bolívar Filandia (ID 4),Plaza de Bolívar Pijao (ID 11),cola_prioridad,5016.76,8462,18.07
+Plaza de Bolívar Circasia (ID 3),Plaza de Bolívar Buenavista (ID 9),cola_prioridad,3149.75,8355,17.15
+Valle de Cocora (ID 15),PANACA (ID 14),cola_prioridad,4571.94,7180,15.65
+Plaza de Bolívar Génova (ID 12),Plaza de Bolívar Armenia (ID 1),cola_prioridad,4637.48,2900,7.64
+Plaza de Bolívar La Tebaida (ID 8),Plaza de Bolívar Salento (ID 5),cola_prioridad,3042.0,8043,17.94
