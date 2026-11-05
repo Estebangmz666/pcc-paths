@@ -4,6 +4,7 @@ Script para la generación de todas las figuras y gráficas requeridas por el An
 2. docs/figuras/r3_convex_hull_tiempos.png
 3. docs/figuras/r4_tsp_exactas_tiempo_vs_k.png
 4. docs/figuras/r4_tsp_calidad_heuristica.png
+5. docs/figuras/arquitectura.png (diagrama de componentes del informe)
 """
 import os
 import sys
@@ -102,7 +103,7 @@ def plot_r4_exact():
 
     plt.figure(figsize=(9, 5.5), dpi=300)
     plt.plot(df["k"], df["Tiempo Held-Karp (ms)"], marker="o", color="#2ca02c", linewidth=2.2, label="Held-Karp $O(k^2 2^k)$")
-    plt.plot(df_fb["k"], df_fb["Tiempo fuerza bruta (ms)"], marker="s", color="#d62728", linewidth=2.2, linestyle="--", label="Fuerza Bruta $O(k!)$")
+    plt.plot(df_fb["k"], df_fb["Tiempo fuerza bruta (ms)"], marker="s", color="#d62728", linewidth=2.2, linestyle="--", label="Fuerza Bruta $O(k \\cdot k!)$")
 
     plt.title("Requerimiento 4: Escalabilidad de Soluciones Exactas (Tiempo vs. k)", fontsize=13, fontweight="bold")
     plt.xlabel("Número de Lugares a Visitar (k)", fontsize=11)
@@ -147,8 +148,59 @@ def plot_r4_heuristic():
     print(f"Gráfica R4 Heurística guardada en: {out_file}")
 
 
+def plot_arquitectura():
+    """Diagrama de componentes y flujo de datos (sección 1 del informe). Fuente equivalente: docs/figuras/arquitectura.mmd"""
+    from matplotlib.patches import FancyBboxPatch
+
+    boxes = {
+        # nombre: (centro_x, centro_y, ancho, alto, texto)
+        "OSM": (3.0, 13.0, 4.6, 1.0, "OpenStreetMap / OSMnx\n(red vial del Quindío)"),
+        "CAT": (9.0, 13.0, 4.6, 1.0, "Catálogo de 42 lugares\n(cabeceras, atractivos, fincas, trilladoras)"),
+        "R1": (6.0, 10.7, 6.4, 1.9, "R1: Modelo de la red vial\n- Componente fuertemente conexa (Tarjan)\n- Pesos: distancia y travel_time\n- Asociación de lugares a nodos (UTM 18N)"),
+        "R2": (2.6, 7.6, 4.6, 1.6, "R2: Caminos mínimos\n- Dijkstra lineal O(V²)\n- Dijkstra con cola O((V+E) log V)\n- Parada temprana"),
+        "R3": (9.4, 7.6, 4.6, 1.6, "R3: Envolvente convexa\n- QuickHull divide y vencerás O(n log n)\n- Comparación con SciPy (Qhull en C)"),
+        "R4": (2.4, 4.2, 4.0, 1.9, "R4: Ruta óptima (ATSP)\n- Fuerza bruta O(k·k!)\n- Held-Karp O(k² 2^k)\n- Heurística voraz O(k²)\n- Itinerario de 11 horas"),
+        "R5": (7.6, 1.2, 6.4, 1.9, "R5: Aplicación (Streamlit + Folium)\n- Rutas con Dijkstra en vivo\n- Polígono de la envolvente\n- Itinerario Held-Karp vs. voraz\n- Tablas y gráficas de resultados"),
+    }
+    colors = {"OSM": "#eeeeee", "CAT": "#eeeeee", "R1": "#dbe9f6", "R2": "#dff0d8",
+              "R3": "#fcefdc", "R4": "#f2dede", "R5": "#e8e0f5"}
+
+    fig, ax = plt.subplots(figsize=(10, 11.5), dpi=200)
+    ax.set_xlim(0, 12)
+    ax.set_ylim(0, 14)
+    ax.axis("off")
+
+    for name, (cx, cy, w, h, text) in boxes.items():
+        ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h, boxstyle="round,pad=0.05",
+                                    facecolor=colors[name], edgecolor="#333333", linewidth=1.2))
+        ax.text(cx, cy, text, ha="center", va="center", fontsize=8.5, linespacing=1.4)
+
+    def arrow(p, q, label=None, lx=None, ly=None, ha="center"):
+        ax.annotate("", xy=q, xytext=p, arrowprops=dict(arrowstyle="-|>", color="#333333", lw=1.2))
+        if label:
+            ax.text(lx, ly, label, ha=ha, va="center", fontsize=7.5, style="italic",
+                    bbox=dict(facecolor="white", edgecolor="none", pad=1.0))
+
+    arrow((3.0, 12.45), (5.0, 11.7))
+    arrow((9.0, 12.45), (7.0, 11.7))
+    arrow((4.2, 9.7), (2.8, 8.45), "quindio_drive_scc.graphml\ncatalogo_lugares_mapeado.csv", 2.2, 9.25)
+    arrow((7.8, 9.7), (9.2, 8.45), "Nodos en UTM 18N\n(enteros)", 9.9, 9.25)
+    arrow((2.6, 6.75), (2.6, 5.2), "matriz_tiempos.csv\n(42 x 42, s)", 2.75, 5.95, ha="left")
+    arrow((6.0, 9.7), (6.2, 2.2), "grafo y catálogo\nmapeado", 6.25, 5.3, ha="left")
+    arrow((4.9, 7.0), (5.4, 2.2), "matriz de\ntiempos", 5.05, 3.5, ha="center")
+    arrow((9.4, 6.75), (9.2, 2.2), "r3_envolvente_vertices.csv", 9.35, 4.6, ha="center")
+    arrow((2.4, 3.2), (4.35, 1.5), "CSV y figuras\nde resultados", 2.0, 2.0, ha="center")
+
+    ax.set_title("Arquitectura de la solución: componentes y flujo de datos", fontsize=12, fontweight="bold")
+    out_file = os.path.join(FIGS_DIR, "arquitectura.png")
+    plt.savefig(out_file, bbox_inches="tight")
+    plt.close()
+    print(f"Diagrama de arquitectura guardado en: {out_file}")
+
+
 def main():
     print("Generando figuras oficiales del proyecto...")
+    plot_arquitectura()
     plot_r2_dijkstra()
     plot_r3_convex_hull()
     plot_r4_exact()

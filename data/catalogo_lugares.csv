@@ -1,43 +1,43 @@
 id,nombre,municipio,categoria,latitud,longitud,duracion_visita_min,fuente_justificacion
-1,Plaza de Bolívar Armenia,Armenia,Cabecera municipal,4.5339,-75.6811,,Plaza principal - punto de partida y llegada oficial
-2,Plaza de Bolívar Calarcá,Calarcá,Cabecera municipal,4.5297,-75.6405,,Plaza principal
-3,Plaza de Bolívar Circasia,Circasia,Cabecera municipal,4.6186,-75.6367,,Plaza principal
-4,Plaza de Bolívar Filandia,Filandia,Cabecera municipal,4.6738,-75.6601,,Plaza principal
-5,Plaza de Bolívar Salento,Salento,Cabecera municipal,4.6375,-75.5707,,Plaza principal
-6,Plaza de Bolívar Montenegro,Montenegro,Cabecera municipal,4.5661,-75.7505,,Plaza principal
-7,Plaza de Bolívar Quimbaya,Quimbaya,Cabecera municipal,4.6225,-75.7644,,Plaza principal
-8,Plaza de Bolívar La Tebaida,La Tebaida,Cabecera municipal,4.4536,-75.7869,,Plaza principal
-9,Plaza de Bolívar Buenavista,Buenavista,Cabecera municipal,4.3644,-75.7408,,Plaza principal
-10,Plaza de Bolívar Córdoba,Córdoba,Cabecera municipal,4.3927,-75.6897,,Plaza principal
-11,Plaza de Bolívar Pijao,Pijao,Cabecera municipal,4.3364,-75.7022,,Plaza principal
-12,Plaza de Bolívar Génova,Génova,Cabecera municipal,4.2536,-75.7894,,Plaza principal
-13,Parque Nacional del Café,Montenegro,Atractivo turístico,4.5408,-75.7705,360,Guía oficial Parque del Café - recorrido completo atracciones
-14,PANACA,Quimbaya,Atractivo turístico,4.5828,-75.7917,300,Guía oficial PANACA - recorrido temático agropecuario
-15,Valle de Cocora,Salento,Atractivo turístico,4.6386,-75.4878,240,Senderismo básico palmas de cera y miradores
-16,Jardín Botánico del Quindío y Mariposario,Calarcá,Atractivo turístico,4.5125,-75.6569,150,Guía del Jardín Botánico y mariposario
-17,Museo del Oro Quimbaya,Armenia,Atractivo turístico,4.5583,-75.6600,90,Visita guiada salas de exhibición del Banco de la República
-18,Recuca - Recorrido de la Cultura Cafetera,Calarcá,Atractivo turístico,4.4578,-75.7058,180,Duración experiencia interactiva del café Recuca
-19,Parque Los Arrieros,Montenegro,Atractivo turístico,4.5311,-75.8014,210,Presentaciones culturales y recorrido por estaciones
-20,Mirador Colina Iluminada,Filandia,Atractivo turístico,4.6811,-75.6575,60,Ascenso a torre mirador y fotografía 360 grados
-21,Finca Cafetera Las Acacias,Salento,Atractivo turístico,4.6492,-75.5861,90,Tour cafetero tradicional guiado
-22,Centro de Interpretación Bejuco al Canasto,Filandia,Atractivo turístico,4.6750,-75.6625,60,Taller artesanal de tejeduría de bejuco
-23,Eco Parque Peñas Blancas,Calarcá,Atractivo turístico,4.4842,-75.6425,180,Caminata ecológica y escalada
-24,Balsaje por el Río La Vieja,Quimbaya,Atractivo turístico,4.6053,-75.8522,240,Recorrido en balsa de guadua por río La Vieja
-25,Mirador Alto de la Cruz,Salento,Atractivo turístico,4.6417,-75.5681,45,Subida de escalinatas y vista panorámica de Salento
-26,Parque de la Vida,Armenia,Atractivo turístico,4.5486,-75.6617,60,Paseo urbano por senderos ecológicos y lago
-27,Calle Real y Artesanías Salento,Salento,Atractivo turístico,4.6389,-75.5714,75,Recorrido comercial y gastronómico
-28,Cerro de las Tres Cruces,Buenavista,Atractivo turístico,4.3683,-75.7361,90,Ascenso y avistamiento parapentismo en Buenavista
-29,Hacienda Combia,Calarcá,Finca cafetera u hotel rural,4.4750,-75.6883,,Hotel rural y experiencia de cata de café
-30,Hotel Finca El Rancho,Montenegro,Finca cafetera u hotel rural,4.5542,-75.7611,,Alojamiento rural tradicional
-31,Finca Hotel Las Camelias,Montenegro,Finca cafetera u hotel rural,4.5219,-75.7689,,Complejo turístico y hotelero rural
-32,Finca Hotel Bosques del Samán,Quimbaya,Finca cafetera u hotel rural,4.6522,-75.7958,,Hotel cafetero y canopy
-33,Finca Cafetera El Ocaso,Salento,Finca cafetera u hotel rural,4.6483,-75.5900,,Finca cafetera histórica con senderos
-34,Hacienda Bambusa,Armenia,Finca cafetera u hotel rural,4.4458,-75.7319,,Hotel boutique campestre en El Caimo
-35,Reserva El Cairo,Salento,Finca cafetera u hotel rural,4.6444,-75.5611,,Finca patrimonial y reserva natural
-36,Finca Hotel San Jerónimo,La Tebaida,Finca cafetera u hotel rural,4.4375,-75.7986,,Alojamiento campestre típico
-37,Trilladora La Esmeralda - FNC,Armenia,Centro de acopio o trilladora,4.5264,-75.6931,,Planta de trilla Almacafé Federación Nacional de Cafeteros
-38,Cooperativa de Caficultores del Quindío Sede Armenia,Armenia,Centro de acopio o trilladora,4.5303,-75.6983,,Principal central de compras y acopio de café
-39,Cooperativa de Caficultores - Punto Calarcá,Calarcá,Centro de acopio o trilladora,4.5317,-75.6450,,Punto de compra y pesaje para caficultores de Calarcá
-40,Cooperativa de Caficultores - Punto Salento,Salento,Centro de acopio o trilladora,4.6361,-75.5739,,Punto de acopio veredal Salento
-41,Centro de Acopio y Trilla Montenegro,Montenegro,Centro de acopio o trilladora,4.5639,-75.7486,,Acopio y beneficio de café municipio Montenegro
-42,Trilladora y Beneficio de Café Quimbaya,Quimbaya,Centro de acopio o trilladora,4.6200,-75.7611,,Centro de transformación y acopio Quimbaya
+1,Plaza de Bolívar Armenia,Armenia,Cabecera municipal,4.534322755439026,-75.67278722933959,,Plaza principal - punto de partida y llegada por defecto
+2,Plaza Mayor de Calarcá,Calarcá,Cabecera municipal,4.530569729214585,-75.64054658736019,,Plaza principal
+3,Parque Principal de Circasia,Circasia,Cabecera municipal,4.620261746116215,-75.63469744770907,,Plaza principal
+4,Parque Principal de Filandia,Filandia,Cabecera municipal,4.675026737600047,-75.6582928516731,,Plaza principal
+5,Plaza de Bolívar de Salento,Salento,Cabecera municipal,4.637385444857142,-75.56981020098442,,Plaza principal
+6,Parque Principal de Montenegro,Montenegro,Cabecera municipal,4.567330116924986,-75.75049333447357,,Plaza principal
+7,Plaza de Bolívar de Quimbaya,Quimbaya,Cabecera municipal,4.622635910486822,-75.76319832283654,,Plaza principal
+8,Plaza de Bolívar de La Tebaida,La Tebaida,Cabecera municipal,4.45393597568216,-75.78930459381547,,Plaza principal
+9,Parque Principal de Buenavista,Buenavista,Cabecera municipal,4.359620066945073,-75.73844206331066,,Plaza principal
+10,Parque Principal de Córdoba,Córdoba,Cabecera municipal,4.3902205691600935,-75.68545751912866,,Plaza principal
+11,Plaza Principal de Pijao,Pijao,Cabecera municipal,4.33431455872039,-75.70397516145636,,Plaza principal
+12,Parque Simón Bolívar de Génova,Génova,Cabecera municipal,4.206823069718356,-75.7905405420854,,Plaza principal
+13,Parque Nacional del Café,Montenegro,Atractivo turístico,4.5404403229483385,-75.77057300378297,360,Criterio del grupo: recorrido completo de las atracciones
+14,PANACA,Quimbaya,Atractivo turístico,4.608024006894276,-75.81881550542067,300,Criterio del grupo: recorrido temático agropecuario
+15,Valle de Cocora,Salento,Atractivo turístico,4.638588883536977,-75.48894125347853,240,Criterio del grupo: senderismo básico por palmas de cera y miradores
+16,Jardín Botánico del Quindío,Calarcá,Atractivo turístico,4.5117875513727705,-75.65093429029207,150,Criterio del grupo: recorrido por el jardín y el mariposario
+17,Museo del Oro Quimbaya,Armenia,Atractivo turístico,4.571551910681425,-75.64786116331008,90,Criterio del grupo: visita guiada por las salas de exhibición
+18,Recuca - Recorrido de la Cultura Cafetera,Calarcá,Atractivo turístico,4.43281318205525,-75.73318642606526,180,Criterio del grupo: duración de la experiencia interactiva del café
+19,Parque de los Arrieros,Quimbaya,Atractivo turístico,4.5801996240472125,-75.78088363568276,210,Criterio del grupo: presentaciones culturales y recorrido por estaciones
+20,Mirador Colina Iluminada,Filandia,Atractivo turístico,4.669082144355375,-75.66567082215983,60,Criterio del grupo: ascenso a la torre mirador y fotografías
+21,Las Acacias Coffee Farm,Salento,Atractivo turístico,4.623533678471974,-75.58905076077161,90,Criterio del grupo: tour cafetero tradicional guiado
+22,Centro de Interpretación Del Bejuco al Canasto,Filandia,Atractivo turístico,4.674374669889045,-75.65826696264567,60,Criterio del grupo: taller artesanal de tejeduría de bejuco
+23,Ecoparque Peñas Blancas,Calarcá,Atractivo turístico,4.484258747920378,-75.64119942221606,180,Criterio del grupo: caminata ecológica y escalada
+24,Balsaje La Berraquera por el Río La Vieja,Quimbaya,Atractivo turístico,4.624914634701717,-75.77081287164118,240,Criterio del grupo: recorrido en balsa de guadua por el río La Vieja
+25,Mirador Alto de la Cruz,Salento,Atractivo turístico,4.640054448189912,-75.56625378962639,45,Criterio del grupo: subida de escalinatas y vista panorámica
+26,Parque de la Vida,Armenia,Atractivo turístico,4.548212950499149,-75.66051259516688,60,Criterio del grupo: paseo urbano por senderos ecológicos y lago
+27,Calle Real y Artesanías de Salento,Salento,Atractivo turístico,4.637934825005176,-75.56926032959927,75,Criterio del grupo: recorrido comercial y gastronómico
+28,Cerro de las Tres Cruces,Buenavista,Atractivo turístico,4.349461152583564,-75.7301209798704,90,Criterio del grupo: ascenso y avistamiento de parapentismo
+29,Hotel Hacienda Combia,Calarcá,Finca cafetera u hotel rural,4.491867846466301,-75.6863519896244,,Coordenadas verificadas en Google Maps
+30,Hotel Finca El Rancho La Soledad,Montenegro,Finca cafetera u hotel rural,4.55953391301006,-75.74837140866117,,Coordenadas verificadas en Google Maps
+31,Hotel Campestre Las Camelias,Montenegro,Finca cafetera u hotel rural,4.522832813115434,-75.78522632400733,,Coordenadas verificadas en Google Maps
+32,Finca Villa Nora,Quimbaya,Finca cafetera u hotel rural,4.61472,-75.77725,,Coordenadas tomadas del mapa de Hoteles.com
+33,Finca El Ocaso,Salento,Finca cafetera u hotel rural,4.623992235777688,-75.59516827612615,,Coordenadas verificadas en Google Maps
+34,Hacienda Bambusa,Armenia,Finca cafetera u hotel rural,4.399355866691368,-75.77482469334551,,Coordenadas verificadas en Google Maps
+35,Reserva El Cairo,Salento,Finca cafetera u hotel rural,4.638781567567648,-75.54780297427429,,Coordenadas verificadas en Google Maps
+36,Finca Hotel San Jerónimo,Quimbaya,Finca cafetera u hotel rural,4.624812975598635,-75.77176277800719,,Coordenadas verificadas en Google Maps
+37,Trilladora Quindío Armenia,Armenia,Centro de acopio o trilladora,4.519577275256454,-75.69074919098584,,Coordenadas verificadas en Google Maps
+38,Cooperativa de Caficultores del Quindío - Armenia,Armenia,Centro de acopio o trilladora,4.518732332315088,-75.69034149517968,,Coordenadas verificadas en Google Maps
+39,Cooperativa de Caficultores del Quindío - Compra de Café Calarcá,Calarcá,Centro de acopio o trilladora,4.529288897309048,-75.64353089147384,,Coordenadas verificadas en Google Maps
+40,Cooperativa de Caficultores del Quindío - Compra de Café Filandia,Filandia,Centro de acopio o trilladora,4.680716584828075,-75.65507378268076,,Coordenadas verificadas en Google Maps
+41,Trilladora de la Cooperativa de Caficultores del Quindío - Montenegro,Montenegro,Centro de acopio o trilladora,4.566004064470527,-75.75559003566745,,Coordenadas verificadas en Google Maps
+42,Cooperativa de Caficultores del Quindío - Sede Principal,Quimbaya,Centro de acopio o trilladora,4.620940303405001,-75.76688572217367,,Coordenadas verificadas en Google Maps

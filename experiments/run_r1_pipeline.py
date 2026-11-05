@@ -10,6 +10,7 @@ Script para la ejecución completa del Requerimiento 1:
 import os
 import sys
 import time
+import platform
 import pandas as pd
 import networkx as nx
 import osmnx as ox
@@ -38,6 +39,15 @@ def main():
     e_raw = len(G_raw.edges)
     print(f"Red descargada exitosamente en fecha: {download_date}")
     print(f"Nodos descargados (V): {v_raw:,} | Aristas descargadas (E): {e_raw:,}")
+
+    # Metadatos de la descarga (fecha y versiones)
+    df_meta = pd.DataFrame([
+        {"campo": "fecha_descarga", "valor": download_date},
+        {"campo": "osmnx_version", "valor": ox.__version__},
+        {"campo": "networkx_version", "valor": nx.__version__},
+        {"campo": "python_version", "valor": platform.python_version()},
+    ])
+    df_meta.to_csv(os.path.join(BASE_DIR, "data/resultados/r1_metadatos.csv"), index=False)
 
     # 2. Estimación analítica de memoria
     mem_est = calculate_memory_estimates(v_raw, e_raw)

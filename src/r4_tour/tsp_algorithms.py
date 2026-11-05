@@ -1,11 +1,25 @@
 """
 Implementaciones de algoritmos para el TSP Asimétrico (ATSP):
-1. Fuerza Bruta: O(k!)
+1. Fuerza Bruta: O(k * k!)
 2. Held-Karp (Programación Dinámica): O(k^2 * 2^k) con reconstrucción del camino
 3. Heurística Voraz (Vecino Más Cercano): O(k^2)
 """
-import itertools
 from typing import Sequence
+
+
+def _permutations(items: list[int]):
+    """
+    Genera recursivamente todas las permutaciones de items (implementación propia).
+    Fija cada elemento en la primera posición y permuta el resto: T(k) = k * T(k-1) + O(k).
+    """
+    if len(items) <= 1:
+        yield tuple(items)
+        return
+    for i in range(len(items)):
+        first = items[i]
+        rest = items[:i] + items[i + 1:]
+        for perm in _permutations(rest):
+            yield (first,) + perm
 
 
 def tsp_brute_force(cost_matrix: list[list[float]], start_node: int, intermediate_nodes: Sequence[int]) -> tuple[float, list[int]]:
@@ -19,7 +33,7 @@ def tsp_brute_force(cost_matrix: list[list[float]], start_node: int, intermediat
     best_cost = float("inf")
     best_tour = []
 
-    for perm in itertools.permutations(intermediate_nodes):
+    for perm in _permutations(list(intermediate_nodes)):
         current_cost = 0.0
         current_node = start_node
         valid = True
@@ -74,30 +88,32 @@ def tsp_held_karp(cost_matrix: list[list[float]], start_node: int, intermediate_
         mask = 1 << j
         memo[(mask, j)] = (initial_cost, None)
 
-    # Iterar por tamaños crecientes de subconjuntos de 2 a k
-    for subset_size in range(2, k + 1):
-        for comb in itertools.combinations(range(k), subset_size):
-            mask = 0
-            for idx in comb:
-                mask |= (1 << idx)
+    # Recorrer las máscaras de 1 a 2^k - 1 en orden creciente.
+    # Como mask ^ (1 << j) < mask, cada subproblema previo ya está calculado.
+    for mask in range(1, 1 << k):
+        # Los subconjuntos de tamaño 1 ya están en el caso base
+        if mask & (mask - 1) == 0:
+            continue
 
-            for j in comb:
-                prev_mask = mask ^ (1 << j)
-                g_j = local_to_global[j]
-                best_sub_cost = float("inf")
-                best_parent = None
+        comb = [idx for idx in range(k) if mask & (1 << idx)]
 
-                for i in comb:
-                    if i != j:
-                        g_i = local_to_global[i]
-                        prev_cost, _ = memo[(prev_mask, i)]
-                        transition_cost = cost_matrix[g_i][g_j]
-                        total = prev_cost + transition_cost
-                        if total < best_sub_cost:
-                            best_sub_cost = total
-                            best_parent = i
+        for j in comb:
+            prev_mask = mask ^ (1 << j)
+            g_j = local_to_global[j]
+            best_sub_cost = float("inf")
+            best_parent = None
 
-                memo[(mask, j)] = (best_sub_cost, best_parent)
+            for i in comb:
+                if i != j:
+                    g_i = local_to_global[i]
+                    prev_cost, _ = memo[(prev_mask, i)]
+                    transition_cost = cost_matrix[g_i][g_j]
+                    total = prev_cost + transition_cost
+                    if total < best_sub_cost:
+                        best_sub_cost = total
+                        best_parent = i
+
+            memo[(mask, j)] = (best_sub_cost, best_parent)
 
     # Encontrar el cierre óptimo: regresar de j a start_node con todos los nodos visitados (full_mask)
     full_mask = (1 << k) - 1

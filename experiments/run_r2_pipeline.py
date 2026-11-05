@@ -9,6 +9,7 @@ Script para la ejecución completa del Requerimiento 2:
 import os
 import sys
 import time
+import statistics
 import pandas as pd
 import osmnx as ox
 
@@ -184,7 +185,7 @@ def main():
 
     # Resumen de cocientes (Anexo oficial)
     cocientes.sort()
-    mediana_q = cocientes[len(cocientes) // 2]
+    mediana_q = statistics.median(cocientes)
     min_q = cocientes[0]
     max_q = cocientes[-1]
 

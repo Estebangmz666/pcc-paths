@@ -58,30 +58,21 @@ def download_quindio_network() -> tuple[nx.MultiDiGraph, str]:
     return G, download_date
 
 
-def benchmark_scc_extraction(G_full, armenia_coord: tuple[float, float] = (4.5339, -75.6811)) -> pd.DataFrame:
+def benchmark_scc_extraction(G_full, armenia_coord: tuple[float, float] = (4.534322755439026, -75.67278722933959)) -> pd.DataFrame:
     """
     Ejecuta mediciones de tiempo de extracción de la Componente Fuertemente Conexa (SCC)
-    en sub-redes de tamaño creciente (radios 2, 5, 10, 20 km alrededor de Armenia y depto completo).
+    en redes de tamaño creciente: redes descargadas con ox.graph_from_point alrededor de la
+    Plaza de Bolívar de Armenia (radios 2, 5, 10, 20 km) y el departamento completo (G_full).
+    La descarga no forma parte del tiempo medido.
     Repite 5 veces cada medición y reporta la mediana (Protocolo Experimental, Sección 6).
     """
     radios = [2000, 5000, 10000, 20000]
     results = []
 
-    # Coordenadas UTM de Armenia
-    arm_x, arm_y = wgs84_to_utm(armenia_coord[1], armenia_coord[0])
-
-    # Precomputar distancias de todos los nodos a la Plaza de Bolívar de Armenia
-    node_dists = {}
-    for node_id, data in G_full.nodes(data=True):
-        nx_utm, ny_utm = wgs84_to_utm(float(data["x"]), float(data["y"]))
-        dist_m = math.sqrt((nx_utm - arm_x)**2 + (ny_utm - arm_y)**2)
-        node_dists[node_id] = dist_m
-
     for r in radios:
         radio_km = r // 1000
-        # Filtrar nodos dentro del radio métrico
-        sub_nodes = [nid for nid, d in node_dists.items() if d <= r]
-        G_sub = G_full.subgraph(sub_nodes).copy()
+        # Descarga de la red alrededor de la Plaza de Bolívar (fuera del cronómetro)
+        G_sub = ox.graph_from_point(armenia_coord, dist=r, network_type="drive")
         v = len(G_sub.nodes)
         e = len(G_sub.edges)
 

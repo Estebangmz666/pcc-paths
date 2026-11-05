@@ -5,15 +5,22 @@ Desarrollada en Streamlit con visualizaciones geográficas interactivas en Foliu
 """
 import os
 import sys
-import platform
-import psutil
 import pandas as pd
 import streamlit as st
 import folium
+import osmnx as ox
 from streamlit_folium import st_folium
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(BASE_DIR)
+
+from src.r2_paths.graph_adapter import osmnx_to_clean_adj_list, get_route_coordinates
+from src.r2_paths.dijkstra_heap import dijkstra_heap
+from src.r4_tour.tsp_algorithms import tsp_held_karp, tsp_greedy
+
+# Plaza de Bolívar de Armenia (centro de los mapas)
+MAP_CENTER = (4.534322755439026, -75.67278722933959)
+ARMENIA_ID = 1
 
 st.set_page_config(
     page_title="Rutas del Paisaje Cultural Cafetero - Quindío",
@@ -42,6 +49,17 @@ def load_matrix():
     return pd.DataFrame()
 
 
+@st.cache_resource
+def load_graph():
+    """Carga una sola vez el grafo procesado (SCC) y su lista de adyacencia."""
+    graphml_path = os.path.join(BASE_DIR, "data/quindio_drive_scc.graphml")
+    if not os.path.exists(graphml_path):
+        return None, None
+    G = ox.load_graphml(graphml_path)
+    adj_list = osmnx_to_clean_adj_list(G)
+    return G, adj_list
+
+
 def render_sidebar():
     st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Flag_of_Quind%C3%ADo.svg/320px-Flag_of_Quind%C3%ADo.svg.png", width=120)
     st.sidebar.title("Quindío Algorítmico")
@@ -58,17 +76,19 @@ def render_sidebar():
         ]
     )
 
-    st.sidebar.markdown("---")
-    st.sidebar.caption("### Protocolo Experimental (Sec. 6)")
-    st.sidebar.caption(f"**SO:** {platform.system()} {platform.release()}")
-    st.sidebar.caption(f"**Procesador:** {platform.processor()[:25]}...")
-    st.sidebar.caption(f"**RAM Total:** {psutil.virtual_memory().total / (1024**3):.1f} GB")
-    st.sidebar.caption(f"**Lenguaje:** Python {platform.python_version()}")
-
     return menu
 
 
-def render_paths_module(df_places, df_matrix):
+def route_between_places(G, adj_list, row_orig, row_dest):
+    """Ejecuta Dijkstra con cola de prioridad entre los nodos asociados a dos lugares."""
+    u = int(row_orig["nearest_node_id"])
+    v = int(row_dest["nearest_node_id"])
+    travel_sec, path, explored = dijkstra_heap(adj_list, u, v)
+    coords = get_route_coordinates(G, path)
+    return travel_sec, coords, explored
+
+
+def render_paths_module(df_places):
     st.header("🗺️ Requerimiento 2: Caminos Mínimos con Dijkstra")
     st.markdown("""
     Cálculo del camino óptimo entre atractivos, cabeceras y fincas cafeteras del departamento del Quindío
@@ -77,6 +97,11 @@ def render_paths_module(df_places, df_matrix):
 
     if df_places.empty:
         st.warning("El catálogo de lugares aún no se ha generado.")
+        return
+
+    G, adj_list = load_graph()
+    if G is None:
+        st.warning("No se encontró data/quindio_drive_scc.graphml. Ejecuta run_r1_pipeline.py primero.")
         return
 
     col1, col2 = st.columns(2)
@@ -88,21 +113,18 @@ def render_paths_module(df_places, df_matrix):
     row_orig = df_places[df_places["nombre"] == orig_name].iloc[0]
     row_dest = df_places[df_places["nombre"] == dest_name].iloc[0]
 
-    p_orig_id = int(row_orig["id"])
-    p_dest_id = int(row_dest["id"])
+    # Cálculo en el momento con Dijkstra (cola de prioridad)
+    travel_sec, route_coords, explored = route_between_places(G, adj_list, row_orig, row_dest)
+    travel_min = travel_sec / 60.0
 
-    # Consultar tiempo en la matriz
-    if not df_matrix.empty and str(p_dest_id) in df_matrix.columns:
-        travel_sec = float(df_matrix.loc[p_orig_id, str(p_dest_id)])
-        travel_min = travel_sec / 60.0
-
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Tiempo de Viaje Estimado", f"{travel_min:.1f} min", f"{travel_sec:.0f} s")
-        m2.metric("Origen", row_orig["municipio"])
-        m3.metric("Destino", row_dest["municipio"])
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Tiempo de Viaje Estimado", f"{travel_min:.1f} min", f"{travel_sec:.0f} s")
+    m2.metric("Origen", row_orig["municipio"])
+    m3.metric("Destino", row_dest["municipio"])
+    st.caption(f"Nodos explorados por Dijkstra: {explored:,}")
 
     # Mapa interactivo
-    m = folium.Map(location=[4.5339, -75.6811], zoom_start=11, tiles="OpenStreetMap")
+    m = folium.Map(location=list(MAP_CENTER), zoom_start=11, tiles="OpenStreetMap")
     folium.Marker(
         [row_orig["latitud"], row_orig["longitud"]],
         popup=f"<b>Origen:</b> {row_orig['nombre']}",
@@ -115,16 +137,17 @@ def render_paths_module(df_places, df_matrix):
         icon=folium.Icon(color="red", icon="flag")
     ).add_to(m)
 
-    # Trazar línea de ruta
-    folium.PolyLine(
-        locations=[[row_orig["latitud"], row_orig["longitud"]], [row_dest["latitud"], row_dest["longitud"]]],
-        color="blue",
-        weight=4,
-        opacity=0.7,
-        tooltip=f"Ruta óptima: {orig_name} -> {dest_name}"
-    ).add_to(m)
+    # Trazar la ruta real sobre la red vial
+    if route_coords:
+        folium.PolyLine(
+            locations=route_coords,
+            color="blue",
+            weight=4,
+            opacity=0.7,
+            tooltip=f"Ruta óptima: {orig_name} -> {dest_name}"
+        ).add_to(m)
 
-    st_folium(m, width=950, height=450)
+    st_folium(m, width=950, height=450, returned_objects=[], key="mapa_rutas")
 
 
 def render_convex_hull_module(df_places):
@@ -134,40 +157,158 @@ def render_convex_hull_module(df_places):
     implementado con **QuickHull (Divide y Vencerás)** con coordenadas UTM Zona 18N enteras de 64 bits.
     """)
 
+    vertices_csv = os.path.join(BASE_DIR, "data/resultados/r3_envolvente_vertices.csv")
+    if os.path.exists(vertices_csv):
+        df_vertices = pd.read_csv(vertices_csv)
+        m = folium.Map(location=list(MAP_CENTER), zoom_start=9, tiles="OpenStreetMap")
+        folium.Polygon(
+            locations=df_vertices[["latitud", "longitud"]].values.tolist(),
+            color="purple",
+            weight=3,
+            fill=True,
+            fill_opacity=0.1,
+            tooltip=f"Envolvente convexa de la red vial ({len(df_vertices)} vértices)"
+        ).add_to(m)
+        st_folium(m, width=950, height=500, returned_objects=[], key="mapa_envolvente")
+    else:
+        st.warning("No se encontró data/resultados/r3_envolvente_vertices.csv. Ejecuta run_r3_pipeline.py primero.")
+
     hull_csv = os.path.join(BASE_DIR, "data/resultados/r3_mediciones_convex_hull.csv")
     if os.path.exists(hull_csv):
         df_hull = pd.read_csv(hull_csv)
-        st.dataframe(df_hull, use_container_width=True)
+        st.dataframe(df_hull, width="stretch")
 
     fig_path = os.path.join(BASE_DIR, "docs/figuras/r3_convex_hull_tiempos.png")
     if os.path.exists(fig_path):
         st.image(fig_path, caption="Comparación de Tiempo: Propio (Divide y Vencerás) vs. SciPy (Qhull en C)")
 
 
+def tour_to_table(tour_indices, cost_matrix, idx_to_id, df_lookup):
+    """Convierte un recorrido (índices de la matriz) en una tabla con el orden de visita."""
+    rows = []
+    for pos in range(1, len(tour_indices)):
+        prev_idx = tour_indices[pos - 1]
+        idx = tour_indices[pos]
+        is_return = pos == len(tour_indices) - 1
+        rows.append({
+            "Orden": "Regreso" if is_return else str(pos),
+            "Lugar": df_lookup.loc[idx_to_id[idx], "nombre"],
+            "Desplazamiento desde el anterior (min)": round(cost_matrix[prev_idx][idx] / 60.0, 1),
+        })
+    return pd.DataFrame(rows)
+
+
+def tour_to_coords(G, adj_list, tour_indices, idx_to_id, df_lookup):
+    """Une las rutas reales (Dijkstra) entre lugares consecutivos del recorrido."""
+    coords = []
+    for pos in range(len(tour_indices) - 1):
+        row_a = df_lookup.loc[idx_to_id[tour_indices[pos]]]
+        row_b = df_lookup.loc[idx_to_id[tour_indices[pos + 1]]]
+        _, leg_coords, _ = route_between_places(G, adj_list, row_a, row_b)
+        coords.extend(leg_coords)
+    return coords
+
+
 def render_tsp_module(df_places, df_matrix):
     st.header("☕ Requerimiento 4: Planificador de Itinerarios (ATSP)")
     st.markdown("""
-    Optimización del recorrido turístico saliendo y regresando a **Armenia**, comparando
-    **Held-Karp** (Programación Dinámica $O(k^2 2^k)$) contra la **Heurística Voraz**
-    y evaluando la restricción de **jornada máxima de 11 horas**.
+    Optimización del recorrido turístico saliendo y regresando al lugar de partida, comparando
+    **Held-Karp** (Programación Dinámica $O(k^2 2^k)$) contra la **Heurística Voraz** (vecino más cercano).
     """)
 
-    itin_csv = os.path.join(BASE_DIR, "data/resultados/r4_itinerario_11h.csv")
-    if os.path.exists(itin_csv):
-        df_itin = pd.read_csv(itin_csv)
-        st.subheader("📋 Itinerario Óptimo de 1 Día (Held-Karp)")
-        st.dataframe(df_itin, use_container_width=True)
+    if df_places.empty or df_matrix.empty:
+        st.warning("Faltan el catálogo o la matriz de tiempos. Ejecuta run_r1_pipeline.py y run_r2_pipeline.py primero.")
+        return
+
+    G, adj_list = load_graph()
+    if G is None:
+        st.warning("No se encontró data/quindio_drive_scc.graphml. Ejecuta run_r1_pipeline.py primero.")
+        return
+
+    # Matriz de tiempos como lista de listas indexada 0..N-1
+    place_ids = [int(col) for col in df_matrix.columns]
+    id_to_idx = {pid: idx for idx, pid in enumerate(place_ids)}
+    idx_to_id = {idx: pid for idx, pid in enumerate(place_ids)}
+    cost_matrix = [[float(df_matrix.loc[i_pid, str(j_pid)]) for j_pid in place_ids] for i_pid in place_ids]
+    df_lookup = df_places.set_index("id")
+
+    # Lugar de partida (Armenia por defecto)
+    start_options = df_places["id"].tolist()
+    default_start = start_options.index(ARMENIA_ID) if ARMENIA_ID in start_options else 0
+    start_id = st.selectbox(
+        "Lugar de partida:",
+        start_options,
+        index=default_start,
+        format_func=lambda pid: df_lookup.loc[pid, "nombre"]
+    )
+
+    # Atractivos turísticos, sin el lugar de partida
+    attraction_ids = df_places[
+        (df_places["categoria"] == "Atractivo turístico") & (df_places["id"] != start_id)
+    ]["id"].tolist()
+    selected_ids = st.multiselect(
+        "Atractivos a visitar (entre 6 y 8):",
+        attraction_ids,
+        format_func=lambda pid: df_lookup.loc[pid, "nombre"]
+    )
+
+    if st.button("Calcular itinerario"):
+        if not 6 <= len(selected_ids) <= 8:
+            st.error(f"Selecciona entre 6 y 8 atractivos (seleccionados: {len(selected_ids)}).")
+        else:
+            start_idx = id_to_idx[start_id]
+            inter_indices = [id_to_idx[pid] for pid in selected_ids]
+
+            cost_hk, tour_hk = tsp_held_karp(cost_matrix, start_idx, inter_indices)
+            cost_gr, tour_gr = tsp_greedy(cost_matrix, start_idx, inter_indices)
+
+            st.session_state["itinerary"] = {
+                "start_name": df_lookup.loc[start_id, "nombre"],
+                "cost_hk": cost_hk,
+                "cost_gr": cost_gr,
+                "table_hk": tour_to_table(tour_hk, cost_matrix, idx_to_id, df_lookup),
+                "table_gr": tour_to_table(tour_gr, cost_matrix, idx_to_id, df_lookup),
+                "coords_hk": tour_to_coords(G, adj_list, tour_hk, idx_to_id, df_lookup),
+                "coords_gr": tour_to_coords(G, adj_list, tour_gr, idx_to_id, df_lookup),
+                "places": [
+                    (df_lookup.loc[pid, "latitud"], df_lookup.loc[pid, "longitud"], df_lookup.loc[pid, "nombre"])
+                    for pid in [start_id] + list(selected_ids)
+                ],
+            }
+
+    result = st.session_state.get("itinerary")
+    if result is None:
+        return
+
+    st.subheader(f"Recorrido saliendo de {result['start_name']}")
+    diff_sec = result["cost_gr"] - result["cost_hk"]
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Tiempo total Held-Karp", f"{result['cost_hk'] / 60.0:.1f} min")
+    m2.metric("Tiempo total Voraz", f"{result['cost_gr'] / 60.0:.1f} min")
+    m3.metric(
+        "Diferencia (Voraz - Held-Karp)",
+        f"{diff_sec / 60.0:.1f} min",
+        f"{diff_sec / result['cost_hk'] * 100.0:.2f} %" if result["cost_hk"] > 0 else None,
+        delta_color="inverse"
+    )
 
     col1, col2 = st.columns(2)
-    fig1 = os.path.join(BASE_DIR, "docs/figuras/r4_tsp_exactas_tiempo_vs_k.png")
-    fig2 = os.path.join(BASE_DIR, "docs/figuras/r4_tsp_calidad_heuristica.png")
+    with col1:
+        st.markdown("**Orden de visita - Held-Karp**")
+        st.dataframe(result["table_hk"], width="stretch", hide_index=True)
+    with col2:
+        st.markdown("**Orden de visita - Heurística voraz**")
+        st.dataframe(result["table_gr"], width="stretch", hide_index=True)
 
-    if os.path.exists(fig1):
-        with col1:
-            st.image(fig1, caption="Escalabilidad de Soluciones Exactas: Held-Karp vs. Fuerza Bruta")
-    if os.path.exists(fig2):
-        with col2:
-            st.image(fig2, caption="Calidad de la Heurística Voraz (% de Brecha)")
+    m = folium.Map(location=list(MAP_CENTER), zoom_start=10, tiles="OpenStreetMap")
+    for lat, lon, name in result["places"]:
+        folium.Marker([lat, lon], popup=name).add_to(m)
+    if result["coords_hk"]:
+        folium.PolyLine(result["coords_hk"], color="green", weight=5, opacity=0.7, tooltip="Held-Karp").add_to(m)
+    if result["coords_gr"]:
+        folium.PolyLine(result["coords_gr"], color="red", weight=3, opacity=0.7, dash_array="8", tooltip="Heurística voraz").add_to(m)
+    st.caption("Verde: recorrido Held-Karp. Rojo punteado: recorrido de la heurística voraz.")
+    st_folium(m, width=950, height=500, returned_objects=[], key="mapa_itinerario")
 
 
 def render_results_module():
@@ -214,12 +355,26 @@ def render_results_module():
         st.subheader("R4: Soluciones Exactas y Heurística de Recorrido")
         f_ex = os.path.join(BASE_DIR, "data/resultados/r4_soluciones_exactas.csv")
         f_he = os.path.join(BASE_DIR, "data/resultados/r4_calidad_heuristica.csv")
+        f_it = os.path.join(BASE_DIR, "data/resultados/r4_itinerario_11h.csv")
         if os.path.exists(f_ex):
             st.markdown("**Soluciones exactas (Fuerza Bruta vs. Held-Karp):**")
             st.dataframe(pd.read_csv(f_ex))
         if os.path.exists(f_he):
             st.markdown("**Calidad de la heurística voraz:**")
             st.dataframe(pd.read_csv(f_he))
+        if os.path.exists(f_it):
+            st.markdown("**Itinerario de un día (Held-Karp, jornada máxima de 11 h):**")
+            st.dataframe(pd.read_csv(f_it), width="stretch")
+
+        col1, col2 = st.columns(2)
+        fig1 = os.path.join(BASE_DIR, "docs/figuras/r4_tsp_exactas_tiempo_vs_k.png")
+        fig2 = os.path.join(BASE_DIR, "docs/figuras/r4_tsp_calidad_heuristica.png")
+        if os.path.exists(fig1):
+            with col1:
+                st.image(fig1, caption="Escalabilidad de Soluciones Exactas: Held-Karp vs. Fuerza Bruta")
+        if os.path.exists(fig2):
+            with col2:
+                st.image(fig2, caption="Calidad de la Heurística Voraz (% de Brecha)")
 
 
 def main():
@@ -228,7 +383,7 @@ def main():
     df_matrix = load_matrix()
 
     if menu == "1. Caminos Mínimos (Dijkstra)":
-        render_paths_module(df_places, df_matrix)
+        render_paths_module(df_places)
     elif menu == "2. Envolvente Convexa (Divide & Conquer)":
         render_convex_hull_module(df_places)
     elif menu == "3. Itinerario Turístico (ATSP)":

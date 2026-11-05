@@ -9,6 +9,8 @@ import os
 import sys
 import time
 import random
+import statistics
+import multiprocessing
 import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +18,67 @@ sys.path.append(BASE_DIR)
 
 from src.r4_tour.tsp_algorithms import tsp_brute_force, tsp_held_karp, tsp_greedy
 from src.r4_tour.itinerary import plan_day_itinerary
+
+TIME_LIMIT_S = 300          # Límite por ejecución (Sección 6, punto 7): 5 minutos
+LONG_RUN_MS = 60_000        # Ejecuciones de más de un minuto se miden una sola vez
+REPETITIONS = 5
+
+
+def _brute_force_worker(cost_matrix, start_idx, selected_indices, queue):
+    """Proceso hijo: ejecuta la fuerza bruta y mide su tiempo dentro del propio proceso."""
+    t0 = time.perf_counter()
+    cost, tour = tsp_brute_force(cost_matrix, start_idx, selected_indices)
+    t1 = time.perf_counter()
+    queue.put(((t1 - t0) * 1000, cost, tour))
+
+
+def run_brute_force_with_limit(cost_matrix, start_idx, selected_indices):
+    """
+    Ejecuta una vez la fuerza bruta en un proceso aparte con límite real de 5 minutos.
+    Retorna (tiempo_ms, costo, recorrido) o None si se pasó del límite.
+    """
+    queue = multiprocessing.Queue()
+    proc = multiprocessing.Process(
+        target=_brute_force_worker,
+        args=(cost_matrix, start_idx, selected_indices, queue)
+    )
+    proc.start()
+    proc.join(TIME_LIMIT_S)
+    if proc.is_alive():
+        proc.terminate()
+        proc.join()
+        return None
+    return queue.get()
+
+
+def measure_with_protocol(run_once):
+    """
+    Aplica la regla de la Sección 6: una ejecución; si tarda más de 60 s esa es la medición,
+    si no, se repite hasta 5 ejecuciones y se reporta la mediana.
+    run_once() retorna (tiempo_ms, costo, recorrido) o None si pasó el límite de tiempo.
+    Retorna (tiempo_ms, costo, recorrido) o None si alguna ejecución no se completó.
+    """
+    first = run_once()
+    if first is None:
+        return None
+    elapsed_ms, cost, tour = first
+    if elapsed_ms > LONG_RUN_MS:
+        return elapsed_ms, cost, tour
+
+    times = [elapsed_ms]
+    for _ in range(REPETITIONS - 1):
+        result = run_once()
+        if result is None:
+            return None
+        times.append(result[0])
+    return statistics.median(times), cost, tour
+
+
+def _held_karp_once(cost_matrix, start_idx, selected_indices):
+    t0 = time.perf_counter()
+    cost, tour = tsp_held_karp(cost_matrix, start_idx, selected_indices)
+    t1 = time.perf_counter()
+    return (t1 - t0) * 1000, cost, tour
 
 
 def main():
@@ -62,33 +125,25 @@ def main():
         selected_ids = random.sample(candidate_ids, k)
         selected_indices = [id_to_idx[pid] for pid in selected_ids]
 
-        # Medición Held-Karp (5 repeticiones si < 1 min)
-        hk_times = []
-        cost_hk = 0.0
-        for _ in range(5):
-            t0 = time.perf_counter()
-            cost_hk, tour_hk = tsp_held_karp(cost_matrix, start_idx, selected_indices)
-            t1 = time.perf_counter()
-            hk_times.append((t1 - t0) * 1000)
-        hk_times.sort()
-        med_hk_ms = hk_times[len(hk_times) // 2]
+        # Medición Held-Karp (5 repeticiones y mediana; una sola si pasa de 1 min)
+        med_hk_ms, cost_hk, tour_hk = measure_with_protocol(
+            lambda: _held_karp_once(cost_matrix, start_idx, selected_indices)
+        )
 
-        # Medición Fuerza Bruta
+        # Medición Fuerza Bruta (proceso aparte con límite real de 5 min por ejecución)
         if not fb_timed_out:
-            t0 = time.perf_counter()
-            cost_fb, tour_fb = tsp_brute_force(cost_matrix, start_idx, selected_indices)
-            t1 = time.perf_counter()
-            elapsed_fb_ms = (t1 - t0) * 1000
-
-            # Si pasa de 60 segundos (o límite de 5 min), no seguir aumentando k en FB
-            if elapsed_fb_ms > 60000:
+            fb_result = measure_with_protocol(
+                lambda: run_brute_force_with_limit(cost_matrix, start_idx, selected_indices)
+            )
+            if fb_result is None:
+                # Pasó el límite: no se sigue aumentando k para la fuerza bruta
                 fb_timed_out = True
-                fb_time_str = round(elapsed_fb_ms, 2)
+                fb_time_str = "no completada"
             else:
-                fb_time_str = round(elapsed_fb_ms, 2)
-
-            # Verificación de que ambos den el mismo costo óptimo
-            assert abs(cost_hk - cost_fb) < 1e-4, f"Discrepancia en k={k}: HK={cost_hk} != FB={cost_fb}"
+                med_fb_ms, cost_fb, tour_fb = fb_result
+                fb_time_str = round(med_fb_ms, 2)
+                # Verificación de que ambos den el mismo costo óptimo
+                assert abs(cost_hk - cost_fb) < 1e-4, f"Discrepancia en k={k}: HK={cost_hk} != FB={cost_fb}"
         else:
             fb_time_str = "no completada"
 
@@ -159,6 +214,12 @@ def main():
     print(f" - Tiempo total de visitas: {plan_result['total_visit_min']} min ({plan_result['total_visit_min']/60:.2f} h)")
     print(f" - Tiempo total de desplazamientos: {plan_result['total_travel_min']} min ({plan_result['total_travel_min']/60:.2f} h)")
     print(f" - Duración total de la jornada: {plan_result['total_journey_min']} min ({plan_result['total_journey_hours']} h)")
+    print("\nDuración total de cada intento:")
+    for n_try, attempt in enumerate(plan_result["attempts"], start=1):
+        print(f" - Intento {n_try} ({attempt['num_atractivos']} atractivos): "
+              f"{attempt['total_journey_min']} min ({attempt['total_journey_hours']} h) "
+              f"= {attempt['total_visit_min']} min de visitas + {attempt['total_travel_min']} min de desplazamientos")
+        print(f"   Atractivos: {attempt['atractivos']}")
     if plan_result["pruned_attractions"]:
         print(f" - Atractivos podados para cumplir límite de 11h: {plan_result['pruned_attractions']}")
 
