@@ -1,0 +1,9 @@
+metodo,tramo,desde,hasta,tiempo_tramo_s,tiempo_tramo_min
+held_karp,1,Plaza de Bolívar Armenia,Parque Nacional del Café,1261.05,21.02
+held_karp,2,Parque Nacional del Café,Parque Principal de Filandia,2233.31,37.22
+held_karp,3,Parque Principal de Filandia,Parque Principal de Circasia,1402.54,23.38
+held_karp,4,Parque Principal de Circasia,Plaza de Bolívar Armenia,868.35,14.47
+voraz,1,Plaza de Bolívar Armenia,Parque Principal de Circasia,1001.23,16.69
+voraz,2,Parque Principal de Circasia,Parque Nacional del Café,1571.52,26.19
+voraz,3,Parque Nacional del Café,Parque Principal de Filandia,2233.31,37.22
+voraz,4,Parque Principal de Filandia,Plaza de Bolívar Armenia,2251.03,37.52

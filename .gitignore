@@ -1,0 +1,10 @@
+# Archivos compilados de Python
+__pycache__/
+*.pyc
+
+# Caché de descargas de OSMnx (se regenera al ejecutar R1)
+cache/
+
+# Entornos virtuales
+.venv/
+venv/

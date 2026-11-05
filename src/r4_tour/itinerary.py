@@ -28,6 +28,7 @@ def plan_day_itinerary(
     df_lookup = places_df.set_index("id")
     current_selected = list(selected_place_ids)
     pruned_history = []
+    attempts_history = []  # Duración total de cada intento (antes de quitar atractivos)
 
     start_idx = id_to_matrix_idx[start_place_id]
 
@@ -77,6 +78,14 @@ def plan_day_itinerary(
                 })
 
         total_journey_min = total_travel_min + total_visit_min
+        attempts_history.append({
+            "num_atractivos": len(current_selected),
+            "atractivos": [df_lookup.loc[pid, "nombre"] for pid in current_selected],
+            "total_travel_min": round(total_travel_min, 1),
+            "total_visit_min": round(total_visit_min, 1),
+            "total_journey_min": round(total_journey_min, 1),
+            "total_journey_hours": round(total_journey_min / 60.0, 2),
+        })
 
         # Verificar si cabe en 11 horas (660 min)
         if total_journey_min <= MAX_JOURNEY_MINUTES or len(current_selected) <= 3:
@@ -89,6 +98,7 @@ def plan_day_itinerary(
                 "total_journey_min": round(total_journey_min, 1),
                 "total_journey_hours": round(total_journey_min / 60.0, 2),
                 "pruned_attractions": pruned_history,
+                "attempts": attempts_history,
                 "final_places": current_selected
             }
 

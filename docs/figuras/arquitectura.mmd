@@ -1,0 +1,14 @@
+flowchart TD
+    OSM["OpenStreetMap / OSMnx<br/>(Red vial del Quindío)"] --> R1["R1: Modelo de la red vial<br/>- Componente fuertemente conexa (Tarjan)<br/>- Pesos: distancia y travel_time<br/>- Asociación de lugares a nodos (UTM 18N)"]
+    CAT["Catálogo de 42 lugares<br/>(cabeceras, atractivos, fincas, trilladoras)"] --> R1
+
+    R1 -->|"quindio_drive_scc.graphml<br/>catalogo_lugares_mapeado.csv"| R2["R2: Caminos mínimos<br/>- Dijkstra lineal O(V^2)<br/>- Dijkstra con cola O((V+E) log V)<br/>- Parada temprana"]
+
+    R1 -->|"Nodos en UTM 18N (enteros)"| R3["R3: Envolvente convexa<br/>- QuickHull divide y vencerás O(n log n)<br/>- Comparación con SciPy (Qhull en C)"]
+
+    R2 -->|"matriz_tiempos.csv (42 x 42, s)"| R4["R4: Ruta óptima (ATSP)<br/>- Fuerza bruta O(k·k!)<br/>- Held-Karp O(k^2 2^k)<br/>- Heurística voraz O(k^2)<br/>- Itinerario de 11 horas"]
+
+    R1 -->|"grafo y catálogo mapeado"| R5["R5: Aplicación (Streamlit + Folium)<br/>- Rutas con Dijkstra en vivo<br/>- Polígono de la envolvente<br/>- Itinerario Held-Karp vs. voraz<br/>- Tablas y gráficas de resultados"]
+    R2 -->|"matriz de tiempos"| R5
+    R3 -->|"r3_envolvente_vertices.csv"| R5
+    R4 -->|"CSV y figuras de resultados"| R5

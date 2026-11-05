@@ -18,7 +18,7 @@ import osmnx as ox
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 
-from src.r1_network.spatial import wgs84_to_utm
+from src.r1_network.spatial import wgs84_to_utm, utm_to_wgs84
 from src.r3_geometry.convex_hull_dandc import convex_hull_dandc
 
 
@@ -56,7 +56,7 @@ def benchmark_point_set(name: str, points: list[tuple[int, int]]) -> dict:
     # Comprobar igualdad de conjuntos
     diff = scipy_vertices.symmetric_difference(own_vertices)
     if diff:
-        print(f"Advertencia: Discrepancia menor en {name}: {len(diff)} puntos.")
+        raise RuntimeError(f"La envolvente propia difiere de SciPy en {name}: {len(diff)} puntos distintos.")
     else:
         print(f"Verificación exitosa en {name}: {len(own_vertices)} vértices coinciden 100% con SciPy.")
 
@@ -98,6 +98,16 @@ def main():
     # Benchmark 1: Nodos de la red
     print("\n1. Midiendo envolvente sobre los nodos de la red vial...")
     rows.append(benchmark_point_set("Nodos de la red", network_pts_list))
+
+    # Guardar vértices de la envolvente de la red (orden de perímetro) para la aplicación
+    hull_network = convex_hull_dandc(network_pts_list)
+    hull_rows = []
+    for x, y in hull_network:
+        lon, lat = utm_to_wgs84(x, y)
+        hull_rows.append({"x_utm": x, "y_utm": y, "latitud": lat, "longitud": lon})
+    hull_path = os.path.join(BASE_DIR, "data/resultados/r3_envolvente_vertices.csv")
+    pd.DataFrame(hull_rows).to_csv(hull_path, index=False)
+    print(f"Vértices de la envolvente de la red guardados en: {hull_path}")
 
     # Benchmarks 2, 3, 4: Cuadrado aleatorio (1k, 10k, 50k puntos) con semilla fija
     np.random.seed(42)
