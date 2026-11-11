@@ -1,11 +1,67 @@
 """
 Módulo para la planificación del Itinerario de un día (Jornada máxima de 11 horas).
 """
+from dataclasses import dataclass
+from math import isclose
+from typing import Sequence
+
 import pandas as pd
 from .tsp_algorithms import tsp_held_karp
 
 
 MAX_JOURNEY_MINUTES = 11 * 60  # 660 minutos = 11 horas
+
+
+@dataclass(frozen=True)
+class ItinerarySummary:
+    steps: pd.DataFrame
+    travel_minutes: float
+    visit_minutes: float
+
+    @property
+    def total_minutes(self) -> float:
+        return self.travel_minutes + self.visit_minutes
+
+    @property
+    def fits_day(self) -> bool:
+        total = self.total_minutes
+        return total <= MAX_JOURNEY_MINUTES or isclose(total, MAX_JOURNEY_MINUTES, rel_tol=0.0, abs_tol=1e-9)
+
+
+def _visit_duration_minutes(places_by_id: pd.DataFrame, place_id: int) -> float:
+    duration = places_by_id.at[place_id, "duracion_visita_min"]
+    return float(duration) if pd.notna(duration) else 60.0
+
+
+def summarize_itinerary(
+    cost_matrix: list[list[float]],
+    tour_indices: Sequence[int],
+    matrix_idx_to_id: dict[int, int],
+    places_by_id: pd.DataFrame,
+) -> ItinerarySummary:
+    """Desglosa un recorrido cerrado; el regreso al origen no cuenta como visita."""
+    if len(tour_indices) < 2 or tour_indices[0] != tour_indices[-1]:
+        raise ValueError("El itinerario debe salir y regresar al mismo lugar.")
+
+    steps = []
+    travel_minutes = visit_minutes = 0.0
+    for position, (previous, current) in enumerate(zip(tour_indices, tour_indices[1:]), start=1):
+        place_id = matrix_idx_to_id[current]
+        place_name = places_by_id.at[place_id, "nombre"]
+        is_return = position == len(tour_indices) - 1
+        leg_minutes = cost_matrix[previous][current] / 60.0
+        stay_minutes = 0.0 if is_return else _visit_duration_minutes(places_by_id, place_id)
+        travel_minutes += leg_minutes
+        visit_minutes += stay_minutes
+        steps.append({
+            "Orden": "Regreso" if is_return else position,
+            "Lugar": f"Regreso a {place_name}" if is_return else place_name,
+            "Desplazamiento desde el anterior (min)": round(leg_minutes, 1),
+            "Visita (min)": "-" if is_return else round(stay_minutes, 1),
+            "Tiempo acumulado (h)": round((travel_minutes + visit_minutes) / 60.0, 2),
+        })
+
+    return ItinerarySummary(pd.DataFrame(steps), travel_minutes, visit_minutes)
 
 
 def plan_day_itinerary(
@@ -34,69 +90,26 @@ def plan_day_itinerary(
 
     while True:
         inter_indices = [id_to_matrix_idx[pid] for pid in current_selected]
-        # Calcular orden óptimo con Held-Karp
-        best_travel_time_s, best_tour_indices = tsp_held_karp(cost_matrix, start_idx, inter_indices)
-
-        # Calcular desglose paso a paso
-        steps = []
-        accumulated_min = 0.0
-        total_travel_min = 0.0
-        total_visit_min = 0.0
-
-        for i in range(len(best_tour_indices) - 1):
-            from_idx = best_tour_indices[i]
-            to_idx = best_tour_indices[i + 1]
-
-            travel_sec = cost_matrix[from_idx][to_idx]
-            travel_min = travel_sec / 60.0
-            total_travel_min += travel_min
-            accumulated_min += travel_min
-
-            to_pid = matrix_idx_to_id[to_idx]
-            place_name = df_lookup.loc[to_pid, "nombre"]
-
-            if i + 1 == len(best_tour_indices) - 1:
-                # Regreso al origen (Armenia)
-                visit_min = 0.0
-                steps.append({
-                    "Orden": "Regreso",
-                    "Lugar": f"Regreso a {place_name}",
-                    "Desplazamiento desde el anterior (min)": round(travel_min, 1),
-                    "Visita (min)": "-",
-                    "Tiempo acumulado (h)": round(accumulated_min / 60.0, 2)
-                })
-            else:
-                visit_min = float(df_lookup.loc[to_pid, "duracion_visita_min"]) if pd.notna(df_lookup.loc[to_pid, "duracion_visita_min"]) else 60.0
-                total_visit_min += visit_min
-                accumulated_min += visit_min
-                steps.append({
-                    "Orden": i + 1,
-                    "Lugar": place_name,
-                    "Desplazamiento desde el anterior (min)": round(travel_min, 1),
-                    "Visita (min)": round(visit_min, 1),
-                    "Tiempo acumulado (h)": round(accumulated_min / 60.0, 2)
-                })
-
-        total_journey_min = total_travel_min + total_visit_min
-        attempts_history.append({
+        _, best_tour_indices = tsp_held_karp(cost_matrix, start_idx, inter_indices)
+        summary = summarize_itinerary(cost_matrix, best_tour_indices, matrix_idx_to_id, df_lookup)
+        attempt = {
             "num_atractivos": len(current_selected),
             "atractivos": [df_lookup.loc[pid, "nombre"] for pid in current_selected],
-            "total_travel_min": round(total_travel_min, 1),
-            "total_visit_min": round(total_visit_min, 1),
-            "total_journey_min": round(total_journey_min, 1),
-            "total_journey_hours": round(total_journey_min / 60.0, 2),
-        })
+            "total_travel_min": round(summary.travel_minutes, 1),
+            "total_visit_min": round(summary.visit_minutes, 1),
+            "total_journey_min": round(summary.total_minutes, 1),
+            "total_journey_hours": round(summary.total_minutes / 60.0, 2),
+        }
+        attempts_history.append(attempt)
 
-        # Verificar si cabe en 11 horas (660 min)
-        if total_journey_min <= MAX_JOURNEY_MINUTES or len(current_selected) <= 3:
-            # Caso exitoso o mínimo irreducible
+        if summary.fits_day or len(current_selected) <= 3:
             return {
-                "success": total_journey_min <= MAX_JOURNEY_MINUTES,
-                "steps": pd.DataFrame(steps),
-                "total_travel_min": round(total_travel_min, 1),
-                "total_visit_min": round(total_visit_min, 1),
-                "total_journey_min": round(total_journey_min, 1),
-                "total_journey_hours": round(total_journey_min / 60.0, 2),
+                "success": summary.fits_day,
+                "steps": summary.steps,
+                "total_travel_min": attempt["total_travel_min"],
+                "total_visit_min": attempt["total_visit_min"],
+                "total_journey_min": attempt["total_journey_min"],
+                "total_journey_hours": attempt["total_journey_hours"],
                 "pruned_attractions": pruned_history,
                 "attempts": attempts_history,
                 "final_places": current_selected
@@ -105,9 +118,9 @@ def plan_day_itinerary(
         # Poda: quitar el atractivo que más tiempo consume para lograr que quepa
         heaviest_pid = max(
             current_selected,
-            key=lambda pid: float(df_lookup.loc[pid, "duracion_visita_min"]) if pd.notna(df_lookup.loc[pid, "duracion_visita_min"]) else 0.0
+            key=lambda pid: _visit_duration_minutes(df_lookup, pid),
         )
         pruned_name = df_lookup.loc[heaviest_pid, "nombre"]
-        pruned_duration = df_lookup.loc[heaviest_pid, "duracion_visita_min"]
+        pruned_duration = _visit_duration_minutes(df_lookup, heaviest_pid)
         pruned_history.append(f"{pruned_name} ({pruned_duration} min de visita)")
         current_selected.remove(heaviest_pid)

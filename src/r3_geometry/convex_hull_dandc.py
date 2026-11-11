@@ -1,15 +1,14 @@
 """
 Implementación propia de la Envolvente Convexa mediante el paradigma Divide y Vencerás (QuickHull).
 Complejidad promedio: O(n log n), Peor caso: O(n^2).
-Utiliza coordenadas enteras de 64 bits y descarta puntos colineales intermedios.
+Utiliza coordenadas enteras y descarta puntos colineales intermedios.
 """
-from typing import Sequence
-import numpy as np
+from collections.abc import Iterable, Sequence
 
 
 def cross_product(p1: tuple[int, int], p2: tuple[int, int], p3: tuple[int, int]) -> int:
     """
-    Calcula el producto cruz 2D en 64 bits: (p2 - p1) x (p3 - p1).
+    Calcula el producto cruz 2D con enteros de Python: (p2 - p1) x (p3 - p1).
     Retorna:
       > 0 si p3 está a la izquierda del vector p1 -> p2 (giro antihorario).
       < 0 si p3 está a la derecha del vector p1 -> p2 (giro horario).
@@ -60,25 +59,24 @@ def _find_hull(pts: list[tuple[int, int]], p: tuple[int, int], q: tuple[int, int
     s1 = [pt for pt in pts if cross_product(p, c, pt) > 0]
     s2 = [pt for pt in pts if cross_product(c, q, pt) > 0]
 
-    # Vencer y combinar: recurrencia T(n) = 2T(n/2) + O(n)
+    # Combinar: T(n) = T(len(s1)) + T(len(s2)) + O(n)
     return _find_hull(s1, p, c) + [c] + _find_hull(s2, c, q)
 
 
-def convex_hull_dandc(points: Sequence[tuple[float, float] | tuple[int, int]]) -> list[tuple[int, int]]:
-    """
-    Calcula la envolvente convexa de un conjunto de puntos 2D usando Divide y Vencerás (QuickHull).
-    
-    1. Convierte a enteros de 64 bits.
-    2. Elimina puntos repetidos.
-    3. Encuentra los extremos izquierdo y derecho.
-    4. Resuelve recursivamente para la parte superior e inferior.
-    
-    Retorna la lista de vértices ordenados a lo largo del perímetro de la envolvente.
-    """
-    unique_pts = list(set((int(round(p[0])), int(round(p[1]))) for p in points))
+def prepare_points(points: Iterable[tuple[float, float]]) -> list[tuple[int, int]]:
+    """Redondea las coordenadas al entero más cercano y elimina duplicados."""
+    return list({(int(round(x)), int(round(y))) for x, y in points})
 
+
+def convex_hull_dandc(points: Sequence[tuple[float, float]]) -> list[tuple[int, int]]:
+    """Prepara los puntos y devuelve los vértices de QuickHull en orden de perímetro."""
+    return quickhull_from_prepared_points(prepare_points(points))
+
+
+def quickhull_from_prepared_points(unique_pts: Sequence[tuple[int, int]]) -> list[tuple[int, int]]:
+    """Calcula QuickHull sobre coordenadas enteras que ya se deduplicaron."""
     if len(unique_pts) <= 2:
-        return unique_pts
+        return list(unique_pts)
 
     # Encontrar los puntos con menor y mayor x (extremos)
     min_pt = min(unique_pts, key=lambda pt: (pt[0], pt[1]))

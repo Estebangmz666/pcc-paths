@@ -3,6 +3,7 @@ Aplicación Interactiva Demostrativa del Proyecto Final de Análisis de Algoritm
 Rutas del Paisaje Cultural Cafetero (Quindío).
 Desarrollada en Streamlit con visualizaciones geográficas interactivas en Folium.
 """
+import math
 import os
 import sys
 import pandas as pd
@@ -16,6 +17,7 @@ sys.path.append(BASE_DIR)
 
 from src.r2_paths.graph_adapter import osmnx_to_clean_adj_list, get_route_coordinates
 from src.r2_paths.dijkstra_heap import dijkstra_heap
+from src.r4_tour.itinerary import ItinerarySummary, summarize_itinerary
 from src.r4_tour.tsp_algorithms import tsp_held_karp, tsp_greedy
 
 # Plaza de Bolívar de Armenia (centro de los mapas)
@@ -24,7 +26,6 @@ ARMENIA_ID = 1
 
 st.set_page_config(
     page_title="Rutas del Paisaje Cultural Cafetero - Quindío",
-    page_icon="☕",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -89,7 +90,7 @@ def route_between_places(G, adj_list, row_orig, row_dest):
 
 
 def render_paths_module(df_places):
-    st.header("🗺️ Requerimiento 2: Caminos Mínimos con Dijkstra")
+    st.header("Requerimiento 2: Caminos Mínimos con Dijkstra")
     st.markdown("""
     Cálculo del camino óptimo entre atractivos, cabeceras y fincas cafeteras del departamento del Quindío
     utilizando **Dijkstra con cola de prioridad binaria** $O((V+E)\\log V)$ con parada temprana.
@@ -151,7 +152,7 @@ def render_paths_module(df_places):
 
 
 def render_convex_hull_module(df_places):
-    st.header("📐 Requerimiento 3: Envolvente Convexa de la Red Vial")
+    st.header("Requerimiento 3: Envolvente Convexa de la Red Vial")
     st.markdown("""
     Aproximación de la extensión territorial de la red vial del Quindío mediante el menor polígono convexo,
     implementado con **QuickHull (Divide y Vencerás)** con coordenadas UTM Zona 18N enteras de 64 bits.
@@ -183,19 +184,38 @@ def render_convex_hull_module(df_places):
         st.image(fig_path, caption="Comparación de Tiempo: Propio (Divide y Vencerás) vs. SciPy (Qhull en C)")
 
 
-def tour_to_table(tour_indices, cost_matrix, idx_to_id, df_lookup):
-    """Convierte un recorrido (índices de la matriz) en una tabla con el orden de visita."""
-    rows = []
-    for pos in range(1, len(tour_indices)):
-        prev_idx = tour_indices[pos - 1]
-        idx = tour_indices[pos]
-        is_return = pos == len(tour_indices) - 1
-        rows.append({
-            "Orden": "Regreso" if is_return else str(pos),
-            "Lugar": df_lookup.loc[idx_to_id[idx], "nombre"],
-            "Desplazamiento desde el anterior (min)": round(cost_matrix[prev_idx][idx] / 60.0, 1),
-        })
-    return pd.DataFrame(rows)
+def render_itinerary_comparison(held_karp: ItinerarySummary, greedy: ItinerarySummary):
+    optimal_column, greedy_column, difference_column = st.columns(3)
+    for column, label, summary in (
+        (optimal_column, "Jornada con Held-Karp", held_karp),
+        (greedy_column, "Jornada con la heurística voraz", greedy),
+    ):
+        column.metric(label, f"{summary.total_minutes:.1f} min")
+        column.caption(f"Traslados: {summary.travel_minutes:.1f} min · Visitas: {summary.visit_minutes:.1f} min")
+
+    difference = greedy.total_minutes - held_karp.total_minutes
+    difference_column.metric(
+        "Diferencia de jornada (Voraz − Held-Karp)",
+        f"{difference:.1f} min",
+        f"{difference / held_karp.total_minutes:.2%}" if held_karp.total_minutes > 0 else None,
+        delta_color="inverse",
+    )
+
+    if held_karp.fits_day and greedy.fits_day:
+        st.success("Ambos recorridos caben en una jornada de 11 h.")
+    elif held_karp.fits_day:
+        st.warning("Held-Karp cabe en 11 h, pero el recorrido voraz supera el límite.")
+    else:
+        st.warning("Ningún recorrido cabe en 11 h. Elige visitas más cortas o reduce la selección sin bajar de 6 atractivos.")
+
+    table_columns = st.columns(2)
+    for column, (name, summary) in zip(table_columns, (("Held-Karp", held_karp), ("Heurística voraz", greedy))):
+        column.markdown(f"**Orden de visita - {name}**")
+        column.dataframe(
+            summary.steps.astype({"Orden": "string", "Visita (min)": "string"}),
+            width="stretch",
+            hide_index=True,
+        )
 
 
 def tour_to_coords(G, adj_list, tour_indices, idx_to_id, df_lookup):
@@ -210,7 +230,7 @@ def tour_to_coords(G, adj_list, tour_indices, idx_to_id, df_lookup):
 
 
 def render_tsp_module(df_places, df_matrix):
-    st.header("☕ Requerimiento 4: Planificador de Itinerarios (ATSP)")
+    st.header("Requerimiento 4: Planificador de Itinerarios (ATSP)")
     st.markdown("""
     Optimización del recorrido turístico saliendo y regresando al lugar de partida, comparando
     **Held-Karp** (Programación Dinámica $O(k^2 2^k)$) contra la **Heurística Voraz** (vecino más cercano).
@@ -252,57 +272,47 @@ def render_tsp_module(df_places, df_matrix):
         format_func=lambda pid: df_lookup.loc[pid, "nombre"]
     )
 
+    selection = (start_id, tuple(selected_ids))
+    result = st.session_state.get("itinerary")
+    selection_changed = result is not None and result["selection"] != selection
+    if selection_changed:
+        del st.session_state["itinerary"]
+        result = None
+
     if st.button("Calcular itinerario"):
         if not 6 <= len(selected_ids) <= 8:
             st.error(f"Selecciona entre 6 y 8 atractivos (seleccionados: {len(selected_ids)}).")
-        else:
-            start_idx = id_to_idx[start_id]
-            inter_indices = [id_to_idx[pid] for pid in selected_ids]
+            return
 
-            cost_hk, tour_hk = tsp_held_karp(cost_matrix, start_idx, inter_indices)
-            cost_gr, tour_gr = tsp_greedy(cost_matrix, start_idx, inter_indices)
+        start_idx = id_to_idx[start_id]
+        inter_indices = [id_to_idx[pid] for pid in selected_ids]
+        held_karp_cost, held_karp_tour = tsp_held_karp(cost_matrix, start_idx, inter_indices)
+        greedy_cost, greedy_tour = tsp_greedy(cost_matrix, start_idx, inter_indices)
+        if not all(math.isfinite(cost) for cost in (held_karp_cost, greedy_cost)):
+            st.error("No se encontró un recorrido cerrado para esta selección.")
+            return
 
-            st.session_state["itinerary"] = {
-                "start_name": df_lookup.loc[start_id, "nombre"],
-                "cost_hk": cost_hk,
-                "cost_gr": cost_gr,
-                "table_hk": tour_to_table(tour_hk, cost_matrix, idx_to_id, df_lookup),
-                "table_gr": tour_to_table(tour_gr, cost_matrix, idx_to_id, df_lookup),
-                "coords_hk": tour_to_coords(G, adj_list, tour_hk, idx_to_id, df_lookup),
-                "coords_gr": tour_to_coords(G, adj_list, tour_gr, idx_to_id, df_lookup),
-                "places": [
-                    (df_lookup.loc[pid, "latitud"], df_lookup.loc[pid, "longitud"], df_lookup.loc[pid, "nombre"])
-                    for pid in [start_id] + list(selected_ids)
-                ],
-            }
+        result = {
+            "selection": selection,
+            "held_karp": summarize_itinerary(cost_matrix, held_karp_tour, idx_to_id, df_lookup),
+            "greedy": summarize_itinerary(cost_matrix, greedy_tour, idx_to_id, df_lookup),
+            "coords_hk": tour_to_coords(G, adj_list, held_karp_tour, idx_to_id, df_lookup),
+            "coords_gr": tour_to_coords(G, adj_list, greedy_tour, idx_to_id, df_lookup),
+        }
+        st.session_state["itinerary"] = result
 
-    result = st.session_state.get("itinerary")
     if result is None:
+        if selection_changed:
+            st.info("La selección cambió. Vuelve a calcular el itinerario para ver el nuevo recorrido.")
         return
 
-    st.subheader(f"Recorrido saliendo de {result['start_name']}")
-    diff_sec = result["cost_gr"] - result["cost_hk"]
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Tiempo total Held-Karp", f"{result['cost_hk'] / 60.0:.1f} min")
-    m2.metric("Tiempo total Voraz", f"{result['cost_gr'] / 60.0:.1f} min")
-    m3.metric(
-        "Diferencia (Voraz - Held-Karp)",
-        f"{diff_sec / 60.0:.1f} min",
-        f"{diff_sec / result['cost_hk'] * 100.0:.2f} %" if result["cost_hk"] > 0 else None,
-        delta_color="inverse"
-    )
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Orden de visita - Held-Karp**")
-        st.dataframe(result["table_hk"], width="stretch", hide_index=True)
-    with col2:
-        st.markdown("**Orden de visita - Heurística voraz**")
-        st.dataframe(result["table_gr"], width="stretch", hide_index=True)
+    st.subheader(f"Recorrido saliendo de {df_lookup.at[start_id, 'nombre']}")
+    render_itinerary_comparison(result["held_karp"], result["greedy"])
 
     m = folium.Map(location=list(MAP_CENTER), zoom_start=10, tiles="OpenStreetMap")
-    for lat, lon, name in result["places"]:
-        folium.Marker([lat, lon], popup=name).add_to(m)
+    for place_id in (start_id, *selected_ids):
+        place = df_lookup.loc[place_id]
+        folium.Marker([place["latitud"], place["longitud"]], popup=place["nombre"]).add_to(m)
     if result["coords_hk"]:
         folium.PolyLine(result["coords_hk"], color="green", weight=5, opacity=0.7, tooltip="Held-Karp").add_to(m)
     if result["coords_gr"]:
@@ -312,7 +322,7 @@ def render_tsp_module(df_places, df_matrix):
 
 
 def render_results_module():
-    st.header("📊 Panel de Resultados y Benchmarks Experimentales")
+    st.header("Panel de Resultados y Benchmarks Experimentales")
     st.markdown("Tablas y figuras oficiales según las directrices y formatos del **Anexo del Proyecto Final**.")
 
     tab1, tab2, tab3, tab4 = st.tabs(["R1. Modelo Red", "R2. Caminos Mínimos", "R3. Envolvente", "R4. TSP e Itinerario"])

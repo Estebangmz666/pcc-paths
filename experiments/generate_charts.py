@@ -103,7 +103,7 @@ def plot_r4_exact():
 
     plt.figure(figsize=(9, 5.5), dpi=300)
     plt.plot(df["k"], df["Tiempo Held-Karp (ms)"], marker="o", color="#2ca02c", linewidth=2.2, label="Held-Karp $O(k^2 2^k)$")
-    plt.plot(df_fb["k"], df_fb["Tiempo fuerza bruta (ms)"], marker="s", color="#d62728", linewidth=2.2, linestyle="--", label="Fuerza Bruta $O(k \\cdot k!)$")
+    plt.plot(df_fb["k"], df_fb["Tiempo fuerza bruta (ms)"], marker="s", color="#d62728", linewidth=2.2, linestyle="--", label="Fuerza Bruta $O(k^2 \\cdot k!)$")
 
     plt.title("Requerimiento 4: Escalabilidad de Soluciones Exactas (Tiempo vs. k)", fontsize=13, fontweight="bold")
     plt.xlabel("Número de Lugares a Visitar (k)", fontsize=11)
@@ -159,7 +159,7 @@ def plot_arquitectura():
         "R1": (6.0, 10.7, 6.4, 1.9, "R1: Modelo de la red vial\n- Componente fuertemente conexa (Tarjan)\n- Pesos: distancia y travel_time\n- Asociación de lugares a nodos (UTM 18N)"),
         "R2": (2.6, 7.6, 4.6, 1.6, "R2: Caminos mínimos\n- Dijkstra lineal O(V²)\n- Dijkstra con cola O((V+E) log V)\n- Parada temprana"),
         "R3": (9.4, 7.6, 4.6, 1.6, "R3: Envolvente convexa\n- QuickHull divide y vencerás O(n log n)\n- Comparación con SciPy (Qhull en C)"),
-        "R4": (2.4, 4.2, 4.0, 1.9, "R4: Ruta óptima (ATSP)\n- Fuerza bruta O(k·k!)\n- Held-Karp O(k² 2^k)\n- Heurística voraz O(k²)\n- Itinerario de 11 horas"),
+        "R4": (2.4, 4.2, 4.0, 1.9, "R4: Ruta óptima (ATSP)\n- Fuerza bruta O(k²·k!)\n- Held-Karp O(k² 2^k)\n- Heurística voraz O(k²)\n- Itinerario de 11 horas"),
         "R5": (7.6, 1.2, 6.4, 1.9, "R5: Aplicación (Streamlit + Folium)\n- Rutas con Dijkstra en vivo\n- Polígono de la envolvente\n- Itinerario Held-Karp vs. voraz\n- Tablas y gráficas de resultados"),
     }
     colors = {"OSM": "#eeeeee", "CAT": "#eeeeee", "R1": "#dbe9f6", "R2": "#dff0d8",

@@ -8,3 +8,6 @@ cache/
 # Entornos virtuales
 .venv/
 venv/
+
+# Guía local para la sustentación
+/docs/Guia_de_Sustentacion.md

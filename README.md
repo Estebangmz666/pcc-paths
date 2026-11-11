@@ -1,14 +1,14 @@
-# Rutas del Paisaje Cultural Cafetero - Quindío ☕🗺️
+# Rutas del Paisaje Cultural Cafetero - Quindío
 ## Proyecto Final de Análisis de Algoritmos (2026-2)
 
 Sistema integral de modelado, caminos mínimos, envolvente convexa y optimización de rutas turísticas sobre la red vial real del departamento del Quindío, Colombia.
 
 ---
 
-## 🚀 Requisitos del Sistema y Preparación
+## Requisitos del Sistema y Preparación
 
 - **Sistema Operativo:** Windows 10/11, Linux o macOS.
-- **Python:** Versión 3.10 o superior. Las mediciones reportadas en el informe se hicieron con Python 3.13.7 (ver `data/resultados/r1_metadatos.csv` y la sección 0 del informe).
+- **Python:** Versión 3.10 o superior. Los entornos de las mediciones se detallan en la sección 0 del [informe técnico](docs/Informe_Tecnico.md).
 
 ### Instalación de dependencias:
 ```bash
@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 ---
 
-## 📂 Estructura del Repositorio
+## Estructura del Repositorio
 
 - `specs/`: Especificaciones formales guiadas por requerimiento (Spec-Driven Development).
 - `data/`:
@@ -29,7 +29,7 @@ pip install -r requirements.txt
   - `r1_network/`: Descarga OSMnx, pesos de velocidad/tiempo, SCC y matching espacial UTM 18N.
   - `r2_paths/`: Implementación propia de Dijkstra Lineal $O(V^2)$ y Heap $O((V+E)\log V)$.
   - `r3_geometry/`: Implementación propia de QuickHull (Divide y Vencerás) con coordenadas enteras.
-  - `r4_tour/`: Fuerza Bruta $O(k \cdot k!)$, Held-Karp $O(k^2 2^k)$, Heurística Voraz e Itinerario de 11h.
+  - `r4_tour/`: Fuerza bruta $O(k^2 \cdot k!)$, Held-Karp $O(k^2 2^k)$, heurística voraz e itinerario de 11 h.
   - `app/`: Aplicación demostrativa interactiva en Streamlit.
 - `experiments/`: Scripts de ejecución del protocolo experimental (5 repeticiones, mediana).
 - `tests/`: Pruebas unitarias y de verificación algorítmica con `pytest`.
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 ---
 
-## 🧪 Reproducción de los Experimentos
+## Reproducción de los Experimentos
 
 Para reproducir paso a paso todas las mediciones experimentales exigidas por el profesor, ejecutar en este orden desde la raíz del repositorio:
 
@@ -72,7 +72,7 @@ python experiments/generate_charts.py
 
 ---
 
-## 🚦 Pruebas Unitarias Automatizadas
+## Pruebas Automatizadas
 
 Para validar la correctitud matemática de todos los algoritmos implementados:
 
@@ -82,7 +82,7 @@ python -m pytest tests -v
 
 ---
 
-## 💻 Ejecución de la Aplicación Interactiva
+## Ejecución de la Aplicación Interactiva
 
 Para iniciar la aplicación demostrativa web local:
 

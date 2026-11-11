@@ -1,6 +1,6 @@
 """
 Implementaciones de algoritmos para el TSP Asimétrico (ATSP):
-1. Fuerza Bruta: O(k * k!)
+1. Fuerza Bruta: O(k^2 * k!) en tiempo y O(k^2) en memoria auxiliar
 2. Held-Karp (Programación Dinámica): O(k^2 * 2^k) con reconstrucción del camino
 3. Heurística Voraz (Vecino Más Cercano): O(k^2)
 """
@@ -10,7 +10,8 @@ from typing import Sequence
 def _permutations(items: list[int]):
     """
     Genera recursivamente todas las permutaciones de items (implementación propia).
-    Fija cada elemento en la primera posición y permuta el resto: T(k) = k * T(k-1) + O(k).
+    Fija cada elemento y concatena una tupla de longitud k por cada permutación:
+    T(k) = k * T(k-1) + O(k * k!).
     """
     if len(items) <= 1:
         yield tuple(items)
@@ -25,7 +26,7 @@ def _permutations(items: list[int]):
 def tsp_brute_force(cost_matrix: list[list[float]], start_node: int, intermediate_nodes: Sequence[int]) -> tuple[float, list[int]]:
     """
     Resuelve el ATSP por fuerza bruta evaluando todas las permutaciones de intermediate_nodes.
-    Complejidad: O(k * k!).
+    Complejidad: O(k^2 * k!) en tiempo y O(k^2) en memoria auxiliar.
     
     Retorna:
         (mejor_tiempo, mejor_recorrido)

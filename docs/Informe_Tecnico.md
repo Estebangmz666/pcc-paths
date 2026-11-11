@@ -8,7 +8,7 @@ Integrantes: Jacobo Villa Agudelo, Esteban Gómez León y Juan Manuel Peña
 
 ## 0. Entorno experimental y reproducibilidad
 
-Todas las mediciones de los requerimientos 1 a 4 se hicieron en la misma máquina, siguiendo el protocolo de la sección 6 del enunciado.
+Las mediciones de R1, R2 y R4 se hicieron en la máquina de la tabla. Se repitieron todas las mediciones de R3 el 10 de noviembre de 2026 en una sola máquina (AMD Ryzen 5 7535HS, 16 GB de RAM, Windows 11 Pro 10.0.26200, Python 3.13.14, NumPy 2.5.4 y SciPy 1.18.1), usando el mismo grafo guardado y la misma semilla. Se comparan tiempos únicamente dentro de cada requerimiento.
 
 | Elemento | Valor |
 | :--- | :--- |
@@ -20,7 +20,7 @@ Todas las mediciones de los requerimientos 1 a 4 se hicieron en la misma máquin
 
 La red del departamento se consultó a Overpass a las 17:48 de ese mismo día. La ejecución que registró la fecha de las 17:52 la leyó de la caché local de OSMnx, porque la primera ejecución se interrumpió cuando el servidor de Overpass respondió que estaba saturado (error 502).
 
-**Versiones de las librerías:**
+**Versiones de las librerías en las mediciones iniciales:**
 
 | Librería | Versión | Uso |
 | :--- | :---: | :--- |
@@ -231,7 +231,7 @@ Ambas versiones trabajan sobre la componente fuertemente conexa de R1 ($V = 8\,7
 
 ### 3.2. Invariante y Argumento de Correctitud
 - **Enunciado del Invariante:** Al inicio de cada iteración del bucle principal, para cada nodo $u \in S$ (conjunto de nodos explorados/cerrados), la distancia calculada `dist[u]` es igual a la distancia del camino más corto $\delta(s, u)$ desde el origen $s$.
-- **Por qué permite detenerse al sacar el destino:** Sea $t$ el nodo destino. Cuando $t$ es extraído de la cola de prioridad (o del conjunto no visitado), su distancia es $dist[t] = \min_{v \notin S} \{ dist[v] \}$. Como todos los pesos de las aristas son no negativos ($w(u, v) \ge 0$), cualquier camino alternativo hacia $t$ que pase por algún nodo aún no explorado $v \notin S$ tendrá una longitud de al menos $dist[v] + w(v, \dots) \ge dist[v] \ge dist[t]$. Por ende, ninguna relajación futura podrá reducir la distancia a $t$, garantizando que $dist[t] = \delta(s, t)$ en el momento de la extracción.
+- **Por qué permite detenerse al sacar el destino:** Supongamos que, al elegir el nodo pendiente de menor distancia $u$, existiera un camino más corto hasta él. Sea $v$ el primer nodo de ese camino que aún no está en $S$. Al cerrar el nodo anterior a $v$, Dijkstra ya relajó la arista hacia $v$ desde una distancia óptima. Por eso `dist[v]` es a lo sumo el costo del camino alternativo hasta $v$. Los pesos son no negativos, así que ese prefijo tampoco cuesta más que el camino completo hasta $u$. Esto daría `dist[v] < dist[u]`, contrario a haber elegido $u$ como mínimo. El caso inicial es el origen, de distancia 0. El mismo argumento vale cuando $u$ es el destino y permite detenerse.
 - **Condición requerida:** No negatividad de los pesos ($w \ge 0$). Con pesos negativos, un camino más largo en nodos podría reducir el costo total posterior, invalidando la elección voraz.
 
 ### 3.3. Verificación
@@ -289,7 +289,7 @@ Los otros 10 pares, medidos solo con cola de prioridad, son de media y larga dis
 ### 4.1. Algoritmo Divide y Vencerás (QuickHull)
 Implementación propia en `src/r3_geometry/convex_hull_dandc.py`.
 
-- **Coordenadas:** los nodos de la componente se proyectan a UTM zona 18N (EPSG:32618), cada coordenada se redondea al entero más cercano y se eliminan los puntos repetidos. Python usa enteros de precisión arbitraria, así que los productos cruz no se desbordan. Para SciPy los puntos se pasan como arreglo `int64`. Los giros y alineaciones se calculan con el producto cruz entero:
+- **Coordenadas:** los nodos de la componente se proyectan a UTM zona 18N (EPSG:32618), cada coordenada se redondea al entero más cercano y se eliminan los puntos repetidos. Python usa enteros de precisión arbitraria, así que los productos cruz no se desbordan. Para SciPy se construye antes de medir un arreglo `float64` que representa exactamente los enteros de estos conjuntos. Los giros y alineaciones de la versión propia se calculan con el producto cruz entero:
   $$\text{cross}(p_1, p_2, p_3) = (x_2 - x_1)(y_3 - y_1) - (y_2 - y_1)(x_3 - x_1)$$
   Es positivo si $p_3$ queda a la izquierda de $p_1 \to p_2$, negativo si queda a la derecha y 0 si los tres puntos son colineales.
 - **Estrategia de divide y vencerás:**
@@ -309,12 +309,12 @@ Si $n_1$ y $n_2$ son los puntos que quedan fuera de los lados $AC$ y $CB$ (con $
 $$T(n) = T(n_1) + T(n_2) + O(n)$$
 - **Caso promedio, $O(n \log n)$:** las divisiones son razonablemente balanceadas. Si $n_1 \approx n_2 \approx n/2$, la recurrencia queda $T(n) = 2T(n/2) + O(n)$. Por el teorema maestro ($a = 2$, $b = 2$, $f(n) = \Theta(n)$, caso 2), da $T(n) = \Theta(n \log n)$.
 - **Peor caso, $O(n^2)$:** cada división queda muy desbalanceada. Por ejemplo, cuando casi todos los puntos son vértices de la envolvente y el punto más lejano queda cada vez junto a un extremo, de modo que un lado recibe casi todos los puntos y el otro ninguno. Entonces $T(n) = T(n-1) + O(n) = O(n^2)$. Los puntos sobre un círculo **no** son el peor caso: el punto más lejano a una cuerda es el punto medio del arco, que divide los puntos en dos mitades iguales.
-- **Memoria, $O(n)$:** los puntos sin repetir y las listas de cada subproblema. En el caso balanceado, las listas vivas a lo largo de la recursión suman $O(n)$. En esta implementación, la lista de cada nivel permanece en memoria mientras se resuelven sus subproblemas, así que en el peor caso desbalanceado esa suma podría crecer más; esto no se midió.
+- **Memoria:** $O(n)$ con divisiones balanceadas. Cada nivel conserva su lista mientras resuelve los subproblemas. En una cadena de divisiones muy desbalanceadas, una cota superior es $O(n^2)$ por sumar listas de tamaños $n, n-1, \ldots, 1$.
 - **Estructuras de apoyo:** eliminar los puntos repetidos con un `set` cuesta $O(n)$ en el caso promedio, porque agregar y probar pertenencia son $O(1)$ según la documentación oficial de Python, «Time complexity of operations on built-in types». Buscar los extremos con `min` y `max` también es $O(n)$. No se ordena ningún conjunto de puntos, así que no hay un costo $O(n \log n)$ de ordenamiento.
 - **Fuente:** Barber, C. B., Dobkin, D. P. y Huhdanpaa, H. (1996). «The Quickhull algorithm for convex hulls». *ACM Transactions on Mathematical Software*, 22(4), 469–483.
 
 ### 4.3. Verificación
-- **Contra SciPy en cada conjunto medido.** `experiments/run_r3_pipeline.py` calcula la envolvente con `scipy.spatial.ConvexHull` sobre los mismos puntos enteros. Luego compara el conjunto de vértices de SciPy (`hull.vertices`) con el conjunto de vértices propio. **Si no son iguales, el programa lanza un `RuntimeError` y se detiene**; antes solo imprimía una advertencia. En la ejecución reportada coincidieron en los 4 conjuntos: 14, 17, 25 y 36 vértices.
+- **Contra SciPy en cada conjunto medido.** Antes de cronometrar un conjunto, `experiments/run_r3_pipeline.py` calcula ambas envolventes y compara los vértices. Si difieren, lanza un `RuntimeError` y no mide ese conjunto. En la ejecución reportada coincidieron en los 4 conjuntos: 14, 17, 25 y 36 vértices.
 - **Pruebas automáticas** (`tests/test_convex_hull.py`):
   - Un cuadrado con puntos interiores, resuelto a mano: la envolvente son las 4 esquinas.
   - Cuatro nubes de 100 puntos al azar, con semillas 10, 42, 100 y 2026, comparadas contra SciPy.
@@ -322,14 +322,14 @@ $$T(n) = T(n_1) + T(n_2) + O(n)$$
   Las dos pruebas pasan.
 
 ### 4.4. Resultados Experimentales: Propio vs. SciPy
-Tiempos en **milisegundos**, mediana de 5 repeticiones (`data/resultados/r3_mediciones_convex_hull.csv`). Los puntos del cuadrado son enteros uniformes en $[0, 100\,000)$, generados con `np.random.seed(42)`. Sin repetidos, quedan los $n$ indicados. El cociente es el tiempo propio dividido entre el de SciPy.
+Tiempos en **milisegundos**, mediana de 5 repeticiones por método y conjunto (`data/resultados/r3_mediciones_convex_hull.csv`). Los puntos del cuadrado son enteros uniformes en $[0, 100\,000)$, generados con `np.random.seed(42)`. La proyección, el redondeo, la eliminación de duplicados, la creación del arreglo y la verificación quedan fuera del tiempo de ambos métodos. El cociente es el tiempo propio dividido entre el de SciPy.
 
 | Conjunto de puntos | $n$ | Vértices de la envolvente | Tiempo propio (ms) | Tiempo SciPy (ms) | Cociente |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| Nodos de la red | 8 792 | 14 | 23,71 | 4,37 | 5,43 |
-| Cuadrado, 1 000 puntos | 1 000 | 17 | 2,09 | 1,95 | 1,07 |
-| Cuadrado, 10 000 puntos | 10 000 | 25 | 37,38 | 3,71 | 10,08 |
-| Cuadrado, 50 000 puntos | 50 000 | 36 | 275,92 | 12,98 | 21,26 |
+| Nodos de la red | 8 792 | 14 | 12,3374 | 1,4039 | 8,79 |
+| Cuadrado, 1 000 puntos | 1 000 | 17 | 1,6188 | 0,6358 | 2,55 |
+| Cuadrado, 10 000 puntos | 10 000 | 25 | 18,5019 | 1,5493 | 11,94 |
+| Cuadrado, 50 000 puntos | 50 000 | 36 | 100,2617 | 5,6339 | 17,80 |
 
 Los vértices de la envolvente de la red, en orden de perímetro, están en `data/resultados/r3_envolvente_vertices.csv`, y son los que dibuja la aplicación.
 
@@ -337,14 +337,13 @@ Los vértices de la envolvente de la red, en orden de perímetro, están en `dat
 
 *Gráfica: tiempo de ejecución en milisegundos (eje vertical, escala logarítmica) de la implementación propia y de SciPy para cada conjunto de puntos.*
 
-**Qué usa SciPy por dentro:** `scipy.spatial.ConvexHull` está implementado en el módulo compilado `scipy.spatial._qhull` (archivo `_qhull.cp313-win_amd64.pyd` en la instalación usada). Ese módulo llama a la librería **Qhull** (http://www.qhull.org), escrita en **C**, que implementa el algoritmo Quickhull de Barber, Dobkin y Huhdanpaa (1996). Es el mismo algoritmo que la implementación propia, pero compilado a código de máquina.
+**Qué usa SciPy por dentro:** `scipy.spatial.ConvexHull` usa la librería **Qhull** (http://www.qhull.org), escrita en **C**. Qhull implementa la familia Quickhull de Barber, Dobkin y Huhdanpaa (1996). El principio geométrico es el mismo que el de nuestra versión, aunque cada implementación organiza el trabajo de forma distinta.
 
 **Discusión:** los resultados coinciden con lo esperado.
 - **Mismos vértices:** las dos implementaciones dan exactamente los mismos vértices en los 4 conjuntos.
-- **Por qué SciPy es más rápido:** la versión propia se ejecuta en el intérprete de Python, donde cada producto cruz y cada lista intermedia crea objetos de Python. Qhull hace las mismas operaciones en C sobre números de máquina.
-- **El cociente crece con $n$.** Va de 1,07 con 1 000 puntos a 10,08 con 10 000 y a 21,26 con 50 000. Con pocos puntos, el costo fijo de SciPy (convertir el arreglo, preparar y llamar a Qhull) pesa tanto como el cálculo, y los tiempos son casi iguales. Al crecer $n$ domina el trabajo por punto, donde C es mucho más rápido que Python.
-- **El tiempo propio por punto también crece con $n$:** 2,09 µs con 1 000 puntos, 3,74 µs con 10 000 y 5,52 µs con 50 000. Eso es compatible con un término $O(n \log n)$, aunque el aumento es mayor que el que daría solo el factor $\log n$; no se analizó más a fondo.
-- **Red frente a cuadrado:** la red (8 792 puntos, 14 vértices) se calculó más rápido por punto (2,70 µs) que el cuadrado de 10 000 puntos (25 vértices). Coincide con lo que se espera de QuickHull: con menos vértices hay menos niveles de recursión con puntos por repartir.
+- **Por qué SciPy es más rápido:** Qhull ejecuta el trabajo central en C sobre números de máquina. La versión propia recorre los puntos y construye listas intermedias en Python. La comparación mide la diferencia entre estas dos implementaciones, que incluye más que el lenguaje.
+- **En los tres cuadrados crece el cociente:** 2,55, 11,94 y 17,80. Con pocos puntos pesa más el costo fijo de iniciar cada cálculo; con más puntos pesa más el trabajo repetido. Las tres mediciones no bastan para determinar la complejidad asintótica.
+- **Red frente a cuadrado:** la red (8 792 puntos, 14 vértices) requirió aproximadamente 1,40 µs por punto en la versión propia, frente a 1,85 µs en el cuadrado de 10 000 puntos (25 vértices). Es compatible con que QuickHull descarte pronto muchos puntos interiores de la red.
 
 ---
 
@@ -364,13 +363,13 @@ $$\text{OPT} = \min_{j} \big\{ C(\{1, \dots, k\}, j) + D(j, s) \big\}$$
 Implementaciones propias en `src/r4_tour/tsp_algorithms.py`.
 
 1. **Fuerza bruta** (`tsp_brute_force`). Genera las $k!$ permutaciones de los lugares con una función recursiva propia, `_permutations`, que fija cada lugar en la primera posición y permuta el resto. Evalúa cada recorrido $s \to \pi_1 \to \dots \to \pi_k \to s$ y se queda con el menor.
-   - **Tiempo: $O(k \cdot k!)$.** Hay $k!$ permutaciones y evaluar cada una suma $k + 1$ tramos.
-   - **Memoria: $O(k)$** para el recorrido actual y el mejor recorrido.
-   - **Fuente:** «Travelling salesman problem», sección *Exact algorithms*, Wikipedia (https://en.wikipedia.org/wiki/Travelling_salesman_problem, consultado el 4 de noviembre de 2026). Allí se indica que probar todas las permutaciones tiene un tiempo «within a polynomial factor of O(n!)». Aquí ese factor es $O(k)$, el costo de evaluar cada recorrido, lo que da $O(k \cdot k!)$.
+   - **Tiempo de esta implementación: $O(k^2 \cdot k!)$.** Evaluar cada recorrido suma $k + 1$ tramos; generar todas las permutaciones cuesta más que evaluarlas.
+   - **Memoria auxiliar: $O(k^2)$.** Las llamadas activas conservan listas de lugares pendientes de tamaños $k, k-1, \ldots, 1$, además de tuplas intermedias y del mejor recorrido.
+   - **Fuente del costo de concatenar tuplas:** [código fuente de CPython, función `tupleconcat`](https://github.com/python/cpython/blob/v3.13.14/Objects/tupleobject.c#L410-L451). Para formar la nueva tupla copia las referencias de las dos entradas; el tiempo crece con la longitud resultante.
    - **Recurrencia del generador recursivo.** Sea $G(m)$ el costo de generar las permutaciones de $m$ lugares. Para cada uno de los $m$ lugares que se fijan primero, se generan recursivamente las permutaciones de los $m - 1$ restantes, y cada una de las $m!$ permutaciones resultantes se arma concatenando una tupla de longitud $m$:
      $$G(1) = O(1), \qquad G(m) = m \cdot G(m-1) + O(m \cdot m!)$$
      Dividiendo entre $m!$ queda $\frac{G(m)}{m!} = \frac{G(m-1)}{(m-1)!} + O(m)$, así que $G(k) = O(k! \cdot \sum_{m=1}^{k} m) = O(k^2 \cdot k!)$.
-   - **Nota de implementación:** por esa concatenación de tuplas en cada nivel, en esta implementación la generación cuesta $O(k^2 \cdot k!)$, y la memoria de la pila de generadores, que guarda en cada nivel la lista de lugares restantes, es $O(k^2)$. Un generador que permute en el mismo arreglo, como el algoritmo de Heap, alcanzaría las cotas $O(k \cdot k!)$ y $O(k)$. En cualquier caso, el término dominante es el factorial.
+   - Un generador que permute en el mismo arreglo podría reducir el costo total a $O(k \cdot k!)$ en tiempo y $O(k)$ en memoria auxiliar. Aquí se conservó el generador original para mantener comparables los tiempos de R4.
 2. **Held-Karp** (`tsp_held_karp`). Programación dinámica sobre subconjuntos representados como máscaras de bits. La tabla `memo[(máscara, j)]` guarda el costo $C(S, j)$ y el lugar anterior a $j$. Las máscaras se recorren de 1 a $2^k - 1$ en orden creciente: como $S \setminus \{j\}$ es una máscara menor, siempre está calculada antes. Al final se reconstruye el recorrido siguiendo los lugares anteriores desde el último, así que la función **devuelve el orden de visita**, no solo el tiempo.
    - **Tiempo: $O(k^2 \cdot 2^k)$.** Para cada una de las $2^k$ máscaras y cada $j$ de la máscara se prueban hasta $k$ valores de $i$.
    - **Memoria: $O(k \cdot 2^k)$.** La tabla tiene una entrada por cada par (máscara, $j \in$ máscara), es decir $\sum_{m=1}^{k} m \binom{k}{m} = k \cdot 2^{k-1}$ estados. Para $k = 12$ son $12 \cdot 2^{11} = 24\,576$ estados.
@@ -427,7 +426,7 @@ Tiempos en **milisegundos** (`data/resultados/r4_soluciones_exactas.csv`). Cada 
 *Gráfica: $k$ en el eje horizontal y tiempo en milisegundos en el eje vertical (escala logarítmica), una curva por método. La fuerza bruta no tiene punto en $k = 12$ porque no se completó.*
 
 **Discusión:** lo medido coincide con lo esperado.
-- **Fuerza bruta.** Desde $k = 8$, cada vez que $k$ aumenta en 1, su tiempo se multiplica por un factor de 8,5 a 11,3. Es el comportamiento de un crecimiento factorial: el modelo $O(k \cdot k!)$ predice factores de $(k+1)^2/k$, entre 10,1 y 12,1 en ese rango. Con ese ritmo, $k = 12$ habría necesitado más de 20 minutos, muy por encima del límite.
+- **Fuerza bruta.** De $k = 8$ a $k = 11$, añadir un lugar multiplicó el tiempo por factores de entre 8,5 y 11,3. El crecimiento es compatible con el costo factorial del generador, $O(k^2 \cdot k!)$. Para $k = 12$ solo se sabe que el proceso no terminó dentro de los cinco minutos.
 - **Held-Karp.** Crece mucho más despacio. Por debajo de 1 ms ($k \le 8$) las mediciones son muy sensibles al ruido. De $k = 8$ a $k = 12$ su tiempo se multiplicó por 46,6, del mismo orden que el factor 36 que predice $k^2 2^k$ ($\frac{12^2 \cdot 2^{12}}{8^2 \cdot 2^{8}}$).
 - **Comparación.** En $k = 11$, Held-Karp fue unas 7 700 veces más rápido que la fuerza bruta.
 
@@ -543,10 +542,10 @@ Aplicación web local hecha con **Streamlit** y mapas de **Folium** sobre OpenSt
 3. **Itinerario.**
    - Se elige el lugar de partida, por defecto la Plaza de Bolívar Armenia, y entre 6 y 8 atractivos de la categoría «Atractivo turístico», sin incluir el lugar de partida. Si no se eligen entre 6 y 8, muestra un error y no calcula.
    - Al pulsar «Calcular itinerario», ejecuta en ese momento `tsp_held_karp` y `tsp_greedy` sobre la matriz de tiempos.
-   - Muestra el orden de visita de cada método con el desplazamiento de cada tramo, el tiempo total de desplazamiento de cada uno y la diferencia entre ellos, en minutos y en porcentaje.
+   - Muestra el orden de cada recorrido, el desplazamiento y la visita por parada, y el tiempo acumulado. Compara la jornada completa de los dos métodos y su diferencia en minutos y en porcentaje respecto de Held-Karp. También muestra por separado cuánto tiempo corresponde a traslados y a visitas.
    - Dibuja los dos recorridos en un mapa siguiendo las vías: une las rutas de Dijkstra entre lugares consecutivos.
-   - El resultado se conserva al mover el mapa.
-   - Este módulo **no** suma las duraciones de visita ni aplica el límite de 11 h. El itinerario de un día con ese límite (sección 5.6) se muestra como tabla en el módulo de resultados.
+   - El resultado se conserva al mover el mapa. Al cambiar el punto de partida o los atractivos, se retira el resultado anterior hasta que se vuelva a calcular.
+   - Indica si los recorridos caben en 11 h. Si la selección supera el límite, sugiere cambiar los atractivos; la reducción automática del ejemplo de R4 sigue disponible como tabla en el módulo de resultados.
 4. **Resultados experimentales.** Cuatro pestañas con las tablas y gráficas de R1 a R4, leídas de los CSV de `data/resultados/` y de las figuras de `docs/figuras/`:
    - **R1:** tamaño de la red y tiempos de la componente.
    - **R2:** cocientes, gráfica y tabla de mediciones.
@@ -555,10 +554,10 @@ Aplicación web local hecha con **Streamlit** y mapas de **Folium** sobre OpenSt
 
 **Verificación:** con el módulo de pruebas de Streamlit (`streamlit.testing.v1.AppTest`), en un entorno virtual limpio con solo `requirements.txt` instalado, se comprobó que:
 - los cuatro módulos se ejecutan sin errores;
-- el itinerario rechaza 5 atractivos y calcula con 7;
+- el itinerario rechaza 5 atractivos, muestra la jornada completa con 7, avisa si supera 11 h y retira el resultado al cambiar el origen o la selección;
 - el servidor inicia con el comando de abajo.
 
-Estas comprobaciones no están en `tests/`.
+La prueba de regresión del itinerario está en `tests/test_itinerary_app.py`.
 
 ### Instrucciones para Ejecución Local
 ```bash
@@ -575,14 +574,14 @@ streamlit run src/app/main.py
 
 1. **Representación de la red (R1).** La red descargada tiene 8 808 nodos y 20 157 aristas, y su componente fuertemente conexa 8 792 nodos y 20 136 aristas. Como lista de adyacencia ocupa unos **0,53 MB**, frente a **591,90 MB** como matriz, unas 1 120 veces menos, porque la red es muy dispersa ($E/V \approx 2{,}29$). Solo el 6,47 % de las aristas tiene `maxspeed`, así que el tiempo de viaje depende sobre todo de las velocidades imputadas por tipo de vía. Es una estimación del modelo, no el tiempo real. El tiempo de obtener la componente creció con $V + E$, compatible con $O(V + E)$. El ajuste lineal de la medición principal fue moderado ($R^2 = 0{,}919$) y el del diagnóstico casi perfecto ($R^2 = 0{,}995$), y entre el 88 % y el 97 % del tiempo se va en copiar el subgrafo, no en el algoritmo de Tarjan.
 2. **Caminos mínimos (R2).** Las dos versiones de Dijkstra dieron el mismo tiempo de viaje en los 10 pares cercanos medidos con ambas. La versión con cola de prioridad fue más rápida, con un cociente de mediana **132,3** (mínimo 33,72 y máximo 277,18). El cociente crece con los nodos explorados, porque la versión lineal recorre casi todos los nodos del grafo en cada extracción. Por eso esa versión solo se midió en pares cercanos. La versión con cola resolvió incluso consultas que exploran casi todo el grafo (8 703 nodos) en menos de 20 ms.
-3. **Envolvente convexa (R3).** La implementación propia de QuickHull dio exactamente los mismos vértices que SciPy en los 4 conjuntos: 14 vértices para los 8 792 nodos de la red. SciPy fue entre 1,07 y 21,26 veces más rápido, porque usa Qhull, el mismo algoritmo compilado en C. La diferencia crece con $n$. QuickHull resultó adecuado para la red porque casi todos sus puntos son interiores.
+3. **Envolvente convexa (R3).** QuickHull dio los mismos vértices que SciPy en los 4 conjuntos: 14 vértices para los 8 792 nodos de la red. Con la preparación fuera del cronómetro, SciPy fue entre 2,55 y 17,80 veces más rápido. QuickHull resultó adecuado para la red porque casi todos sus puntos son interiores.
 4. **Ruta óptima (R4).** Comparando con el mismo $k$, Held-Karp fue más rápido que la fuerza bruta en todos los casos, y la diferencia crece con $k$:
 
    | $k$ | 5 | 6 | 7 | 8 | 9 | 10 | 11 |
    | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
    | Fuerza bruta / Held-Karp | 3,1 | 4,1 | 15,1 | 125,2 | 367,4 | 1 297,5 | 7 724,5 |
 
-   En $k = 11$, la fuerza bruta tardó 124 904,42 ms (≈ 2,1 min) y Held-Karp 16,17 ms. En $k = 12$, la fuerza bruta no se completó en 5 minutos y Held-Karp tardó 44,69 ms. Esto refleja la diferencia entre $O(k \cdot k!)$ y $O(k^2 2^k)$. A cambio, Held-Karp necesita una tabla de $k \cdot 2^{k-1}$ estados: para $k = 12$ son 24 576 estados y 4,645 MB medidos.
+   En $k = 11$, la fuerza bruta tardó 124 904,42 ms (≈ 2,1 min) y Held-Karp 16,17 ms. En $k = 12$, la fuerza bruta no se completó en 5 minutos y Held-Karp tardó 44,69 ms. Esto refleja la diferencia entre $O(k^2 \cdot k!)$ y $O(k^2 2^k)$. A cambio, Held-Karp necesita una tabla de $k \cdot 2^{k-1}$ estados: para $k = 12$ son 24 576 estados y 4,645 MB medidos.
 
    La heurística del vecino más cercano no encontró el óptimo en ninguna de las 20 instancias medidas. Su brecha promedio estuvo entre 1,95 % y 8,47 % y la máxima fue 19,76 %. El ejemplo de Armenia, Parque Nacional del Café, Filandia y Circasia muestra por qué: la mejor elección inmediata dejó para el final el regreso más caro, y el recorrido quedó 22,4 % más largo.
 5. **Itinerario de un día.** Los 7 atractivos propuestos no cabían en 11 h (970,1 min). Tras quitar los dos de mayor duración de visita, Recuca y Ecoparque Peñas Blancas, el itinerario de 5 atractivos ordenado con Held-Karp dura 561,3 min (9,36 h): 450,0 min de visitas y 111,3 min de desplazamientos.
@@ -592,11 +591,12 @@ streamlit run src/app/main.py
 ## 8. Anexo: Declaración del Uso de Inteligencia Artificial
 
 En cumplimiento de las condiciones generales del proyecto (Sección 3):
-1. **Herramientas de IA Utilizadas:** Antigravity (Google DeepMind) con modelo Gemini 3.8 Flash, y Claude Code (Anthropic) con el modelo Claude Opus 5.5.
+1. **Herramientas de IA Utilizadas:** Antigravity (Google DeepMind) con modelo Gemini 3.8 Flash, Claude Code (Anthropic) con el modelo Claude Opus 5.5 y Codex (OpenAI).
    - **Uso de Claude Code:**
      - corregir la medición de R1 (redes por radio descargadas), la mediana de R2, la verificación de R3 y la medición de R4 (límite real de 5 min);
      - reemplazar `itertools` por permutaciones y subconjuntos propios, sin cambiar los algoritmos;
      - escribir los scripts complementarios `run_r1_fases_scc.py` y `run_r4_complementos.py`;
+   - **Uso de Codex en la revisión:** separar la preparación del cronómetro en R3, contrastar el análisis de fuerza bruta con el generador que se ejecuta y corregir la duración y la actualización del itinerario en la aplicación. Se volvió a ejecutar R3 contra SciPy, se revisó que el ejemplo de R4 conservara sus resultados y se comprobó el planificador con pruebas de Streamlit.
 2. **Propósito del Apoyo:**
    - Estructuración inicial de los módulos según Spec-Driven Development (SDD).
    - Verificación de formulaciones matemáticas y ecuaciones de recurrencia (Bellman-Held-Karp y Teorema Maestro).

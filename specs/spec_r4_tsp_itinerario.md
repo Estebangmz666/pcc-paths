@@ -2,7 +2,7 @@
 
 ## 1. Objetivo
 Resolver el Problema del Viajante Asimétrico (ATSP) para planificar recorridos turísticos en el Quindío saliendo y regresando a Armenia. Implementar tres estrategias desde cero:
-1. **Fuerza Bruta:** $O(k \cdot k!)$ evaluando todas las permutaciones.
+1. **Fuerza Bruta:** evalúa todas las permutaciones. El generador recursivo con copia de listas y concatenación de tuplas cuesta $O(k^2 \cdot k!)$ en tiempo y $O(k^2)$ en memoria auxiliar.
 2. **Programación Dinámica (Held-Karp):** $O(k^2 2^k)$ con memoización / bitmasks enteros y reconstrucción del tour óptimo.
 3. **Heurística Voraz (Nearest Neighbor):** $O(k^2)$ construyendo el tour paso a paso con la mejor opción inmediata.
 

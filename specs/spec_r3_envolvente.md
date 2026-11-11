@@ -12,7 +12,7 @@ Implementar desde cero un algoritmo de envolvente convexa mediante el paradigma 
      - $n = 50\,000$ puntos (semilla fija: 42)
 
 ## 3. Salidas
-1. Función `convex_hull_divide_and_conquer(points)` $\to$ `hull_vertices`.
+1. Función `convex_hull_dandc(points)` $\to$ `hull_vertices`. Para medir se preparan primero las entradas de ambos métodos, se comprueba la igualdad de vértices y se cronometra solo el cálculo.
 2. Archivo de mediciones: `data/resultados/r3_mediciones_convex_hull.csv`.
 3. Tabla comparativa: $n$, Vértices envolvente, Tiempo propio (ms), Tiempo SciPy (ms), Cociente.
 4. Explicación teórica de la recurrencia:
